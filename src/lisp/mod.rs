@@ -9,6 +9,7 @@
 
 mod functions;
 mod parser;
+mod eval;
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -29,6 +30,7 @@ pub type LispResult = std::result::Result<Expression, Error>;
 ///   * String - a string
 ///   * List   - a list of expressions
 ///   * Func   - a pointer to a function object 
+///   * Lambda - an expression with a set of captured variables
 ///   * Dish   - a pointer to a **mutable** Dish object
 /// 
 #[derive(Clone)]
@@ -39,6 +41,7 @@ pub enum Expression {
     String(String),
     List(Vec<Expression>),
     Func(Rc<dyn Fn(&[Expression]) -> LispResult>),
+    Lambda(Lambda),
     Dish(Rc<RefCell<Dish>>),
 }
 
@@ -53,8 +56,15 @@ pub struct Error(String);
 /// The `data` field contains a hashmap of Strings -> Expressions
 /// for the interpreter
 /// 
-pub struct Environment {
+pub struct Environment<'a> {
     data: HashMap<String, Expression>,
+    outer: Option<&'a Environment<'a>>
+}
+
+#[derive(Clone)]
+pub struct Lambda {
+    params: Rc<Expression>,
+    body: Rc<Expression>,
 }
 
 
@@ -73,6 +83,7 @@ impl fmt::Display for Expression {
                 format!("({})", xs.join(" "))
             },
             Expression::Func(_) => "built-in function".to_string(),
+            Expression::Lambda(_) => "lambda function".to_string(),
             Expression::Dish(dish) => {
                 // so much deref
                 let deref = &*dish;
@@ -131,7 +142,7 @@ pub fn run_repl(env: Option<&mut Environment>) {
 /// Returns an instance of Environment that contains
 /// all the builtin functions and values
 /// 
-fn default_env() -> Environment {
+fn default_env<'a>() -> Environment<'a> {
     let mut data: HashMap<String, Expression> = HashMap::new();
     data.insert("+".to_string(), lisp_add());
     data.insert("-".to_string(), lisp_subtract());
@@ -139,5 +150,5 @@ fn default_env() -> Environment {
     data.insert("rot13".to_string(), lisp_rot13());
     data.insert("reverse".to_string(), lisp_reverse());
 
-    Environment { data }
+    Environment { data, outer: None, }
 }
