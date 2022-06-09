@@ -1,4 +1,4 @@
-use codebake::*;
+use codebake::lisp;
 
 
 fn main() {

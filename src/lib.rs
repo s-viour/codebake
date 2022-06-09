@@ -48,25 +48,33 @@ pub enum Dish {
     Failure(DishError),
 }
 
+/// Represents an argument to an Operation declaratively
+/// 
 #[derive(Debug)]
 pub enum OperationArgType {
     Integer,
 }
 
+/// Actually holds an argument value for an Operation
+/// 
 #[derive(Clone, Debug)]
 pub enum OperationArg {
     Integer(i64),
 }
 
+/// Function pointer to an operation
+/// 
 type Operation = fn(Option<&HashMap<String, OperationArg>>, &mut DishData) -> DishResult;
 
+/// Entirely statically declared struct that holds all the information
+/// about an Operation required for embedding it in the lisp
+/// 
 pub struct OperationInfo {
     pub name: &'static str,
     pub description: &'static str,
     pub arguments: &'static [(&'static str, OperationArgType)],
     pub op: Operation,
 }
-
 
 /// The Result type of codebake
 /// 

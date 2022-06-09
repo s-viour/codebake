@@ -5,25 +5,6 @@
 /// of variant `Expression::Func`. An `Expression::Func` contains an `Rc`
 /// that points to the closure to call from the lisp. 
 /// 
-/// To take an operation in src/ops.rs and embed it in the lisp:
-///   1. If you learn by example, just take a look at the `rot13 operation`
-///      and the `reverse operation` comments below. They should be a little
-///      self-explanatory.
-/// 
-///   2. If your operation is parameterized, you'll have to parse
-///      the arguments. Start by using the `param_operation` macro to
-///      define the name of your function and give the macro a closure
-///      as the second argument like so:
-///        `param_operation!(lisp_rot13, |args: &[Expression]| -> LispResult {...}`
-///      Inside the closure, you'll have access to the slice of `Expression`s
-///      that you should parse from. Do this however you want. After you've parsed
-///      all your arguments, the last expression in your closure should be:
-///        `Ok(embed_operation(Rc::new(your_op(your, args, etc))))`
-/// 
-///   3. If your operation is not parameterized, just use the `noparam_operation`
-///      macro like so:
-///        `noparam_operation!(your_opname, your_op_fxn);`
-///
 
 use std::cell::RefCell;
 use std::collections::HashMap;

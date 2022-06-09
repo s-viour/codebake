@@ -17,7 +17,7 @@ use std::fmt;
 use std::io::{self, Write};
 use std::rc::Rc;
 use crate::{Dish, DishData};
-use crate::ops;
+use crate::ops::OPERATIONS;
 use crate::lisp::parser::parse_eval;
 
 pub type LispResult = std::result::Result<Expression, Error>;
@@ -150,8 +150,9 @@ fn default_env<'a>() -> Environment<'a> {
 
     let mut env = Environment { data, outer: None, };
 
-    functions::embed_operation(&ops::OPINFO_ROT13, &mut env);
-    functions::embed_operation(&ops::OPINFO_REVERSE, &mut env);
+    for oi in OPERATIONS {
+        functions::embed_operation(oi, &mut env);
+    }
 
     env
 }
