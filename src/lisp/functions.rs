@@ -26,32 +26,54 @@
 ///
 
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
-use crate::{Dish, DishData, DishResult};
-use crate::lisp::{Expression, Error, LispResult};
-use crate::ops;
+use crate::{Dish, OperationInfo, OperationArgType, OperationArg};
+use crate::lisp::{Expression, Error, LispResult, Environment};
 
 
-/// Constructs the function for an unparamaterized operation
-/// 
-macro_rules! noparam_operation {
-    ($name:ident, $fxn:expr) => {
-        pub fn $name() -> Expression {
-            embed_operation(Rc::new($fxn()))
-        }
+pub fn embed_operation(oi: &'static OperationInfo, env: &mut Environment) {
+    let fxn = Expression::Func(Rc::new(move |args: &[Expression]| -> LispResult {
+        let hargs = parse_args(oi, args)?;
+        Ok(Expression::Func(Rc::new(move |args: &[Expression]| -> LispResult {
+            if let Expression::Dish(dish) = &args[0] {
+                dish.borrow_mut().apply(oi.op, Some(&hargs));
+                Ok(Expression::Dish(dish.clone()))
+            } else {
+                Err(Error("must be dish".to_string()))
+            }
+        })))
+    }));
+    env.data.insert(oi.name.to_string(), fxn);
+}
+
+fn parse_arg(
+    typ: &OperationArgType,
+    expr: &Expression
+) -> Result<OperationArg, Error> {
+    match typ {
+        OperationArgType::Integer => if let Expression::Number(n) = expr {
+            Ok(OperationArg::Integer(*n as i64))
+        } else { 
+            Err(Error("expected integer".to_string()))
+        },
     }
 }
 
-/// Constructs the function for a paramaterized operation
-/// by embedding argument handling code in a function that ultimately
-/// calls embed_function
-/// 
-macro_rules! param_operation {
-    ($name:ident, $closure:expr) => {
-        pub fn $name() -> Expression {
-            Expression::Func(Rc::new($closure))
-        }
+fn parse_args(
+    oi: &OperationInfo,
+    exprs: &[Expression]
+) -> Result<HashMap<String, OperationArg>, Error> {
+    if oi.arguments.len() != exprs.len() {
+        return Err(Error("incorrect number of arguments".to_string()));
     }
+    let mut ret: HashMap<String, OperationArg> = HashMap::new();
+
+    for ((name, typ), expr) in oi.arguments.iter().zip(exprs) {
+        ret.insert(name.to_string(), parse_arg(typ, expr)?);
+    }
+
+    Ok(ret)
 }
 
 // add function
@@ -74,49 +96,16 @@ pub fn lisp_subtract() -> Expression {
     }))
 }
 
-// dish function
-param_operation!(lisp_dish, |args: &[Expression]| -> LispResult {
-    if args.len() != 1 {
-        return Err(Error("`dish` takes a single argument".to_string()));
-    }
-    match &args[0] {
-        Expression::String(s) => Ok(Expression::Dish(Rc::new(RefCell::new(Dish::from_string(s.clone()))))),
-        _ => Err(Error("unsupported expression type for Dish (must be string)".to_string())),
-    }
-});
-
-// rot13 operation
-param_operation!(lisp_rot13, |args: &[Expression]| -> LispResult {
-    let n = match args.get(0).ok_or(Error("expected argument 0".to_string()))? {
-        Expression::Number(f) => *f as i64,
-        _ => return Err(Error("expected integer".to_string())),
-    };
-
-    Ok(embed_operation(Rc::new(ops::rot13(n))))
-});
-
-// reverse operation
-noparam_operation!(lisp_reverse, ops::reverse);
-
-/// Helper function for embedding raw operations inside
-/// operation closures
-/// 
-fn embed_operation(fxn: Rc<dyn Fn(&mut DishData) -> DishResult>) -> Expression {
-    Expression::Func(Rc::new(move |args: &[Expression]| -> LispResult {
-        match require_arg(args, 0)? {
-            Expression::Dish(dish) => {
-                Dish::apply(&mut *dish.borrow_mut(), &*fxn);
-                Ok(Expression::Dish(dish.clone()))
-            },
-            _ => Err(Error("expected dish".to_string())),
+pub fn lisp_dish() -> Expression {
+    Expression::Func(Rc::new(|args: &[Expression]| -> LispResult {
+        if args.len() != 1 {
+            return Err(Error("`dish` takes a single argument".to_string()));
+        }
+        match &args[0] {
+            Expression::String(s) => Ok(Expression::Dish(Rc::new(RefCell::new(Dish::from_string(s.clone()))))),
+            _ => Err(Error("unsupported expression type for Dish (must be string)".to_string())),
         }
     }))
-}
-
-/// Helper function for requiring a positional argument in argument parsing
-/// 
-fn require_arg(args: &[Expression], n: usize) -> Result<&Expression, Error> {
-    Ok(args.get(n).ok_or(Error(format!("expected argument {}", n)))?)
 }
 
 fn parse_list_of_floats(args: &[Expression]) -> Result<Vec<f64>, Error> {

@@ -17,7 +17,8 @@
 ///      your new operation available in the lisp.
 /// 
 
-use crate::{DishData, DishResult};
+use std::collections::HashMap;
+use crate::{DishData, DishResult, OperationArgType, OperationArg, OperationInfo};
 
 
 fn rot13_helper_bin(n: i64, s: &mut [u8]) {
@@ -39,26 +40,37 @@ fn rot13_helper_str(n: i64, s: &mut str) {
     }
 }
 
-pub fn rot13(n: i64) -> impl Fn(&mut DishData) -> DishResult {
-    move |dish| { 
-        match dish {
-            DishData::Str(s) => {rot13_helper_str(n, s); Ok(())},
-            DishData::Bin(b) => {rot13_helper_bin(n, b); Ok(())},
-        }
+pub static OPINFO_ROT13: OperationInfo = OperationInfo {
+    name: "rot13",
+    description: "rotates characters in the input by the specified amount",
+    arguments: &[("n", OperationArgType::Integer)],
+    op: rot13,
+};
+
+pub fn rot13(args: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
+    let n = args.unwrap().get("n").unwrap().integer()?;
+    match dish {
+        DishData::Str(s) => {rot13_helper_str(n, s); Ok(())},
+        DishData::Bin(b) => {rot13_helper_bin(n, b); Ok(())},
     }
 }
 
-pub fn reverse() -> impl Fn(&mut DishData) -> DishResult {
-    move |dish| {
-        match dish {
-            DishData::Str(d) => {
-                *dish = DishData::Str(d.chars().rev().collect());
-                Ok(())
-            },
-            DishData::Bin(d) => {
-                d.reverse();
-                Ok(())
-            }
+pub static OPINFO_REVERSE: OperationInfo = OperationInfo {
+    name: "reverse",
+    description: "reverses the input",
+    arguments: &[],
+    op: reverse,
+};
+
+pub fn reverse(_: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
+    match dish {
+        DishData::Str(d) => {
+            *dish = DishData::Str(d.chars().rev().collect());
+            Ok(())
+        },
+        DishData::Bin(d) => {
+            d.reverse();
+            Ok(())
         }
     }
 }

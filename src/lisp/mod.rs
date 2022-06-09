@@ -17,8 +17,8 @@ use std::fmt;
 use std::io::{self, Write};
 use std::rc::Rc;
 use crate::{Dish, DishData};
+use crate::ops;
 use crate::lisp::parser::parse_eval;
-use crate::lisp::functions::*;
 
 pub type LispResult = std::result::Result<Expression, Error>;
 
@@ -92,7 +92,7 @@ impl fmt::Display for Expression {
                         DishData::Str(s) => format!("Dish(\"{}\")", s),
                         DishData::Bin(b) => format!("Dish([{:?}])", b),
                     },
-                    Dish::Failure(e) => format!("dish error: {}", e.reason),
+                    Dish::Failure(e) => format!("dish error: {}", e),
                 }
             }
         };
@@ -144,11 +144,14 @@ pub fn run_repl(env: Option<&mut Environment>) {
 /// 
 fn default_env<'a>() -> Environment<'a> {
     let mut data: HashMap<String, Expression> = HashMap::new();
-    data.insert("+".to_string(), lisp_add());
-    data.insert("-".to_string(), lisp_subtract());
-    data.insert("dish".to_string(), lisp_dish());
-    data.insert("rot13".to_string(), lisp_rot13());
-    data.insert("reverse".to_string(), lisp_reverse());
+    data.insert("+".to_string(), functions::lisp_add());
+    data.insert("-".to_string(), functions::lisp_subtract());
+    data.insert("dish".to_string(), functions::lisp_dish());
 
-    Environment { data, outer: None, }
+    let mut env = Environment { data, outer: None, };
+
+    functions::embed_operation(&ops::OPINFO_ROT13, &mut env);
+    functions::embed_operation(&ops::OPINFO_REVERSE, &mut env);
+
+    env
 }

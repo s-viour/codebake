@@ -1,6 +1,6 @@
-use codebake::lisp::run_repl;
+use codebake::*;
 
 
 fn main() {
-    run_repl(None);
+    lisp::run_repl(None);
 }

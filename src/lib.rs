@@ -11,6 +11,7 @@ extern crate lazy_static;
 pub mod ops;
 pub mod lisp;
 
+use std::collections::HashMap;
 use std::fmt;
 use std::result;
 
@@ -18,10 +19,7 @@ use std::result;
 /// on some DishData. This is the `E` type in `codebake::Result`.
 /// 
 #[derive(Clone)]
-pub struct DishError {
-    failed_op: String,
-    reason: String,
-}
+pub struct DishError(String);
 
 /// DishData represents both the type of data and
 /// the data contained within it. The types are not very rich
@@ -50,6 +48,26 @@ pub enum Dish {
     Failure(DishError),
 }
 
+#[derive(Debug)]
+pub enum OperationArgType {
+    Integer,
+}
+
+#[derive(Clone, Debug)]
+pub enum OperationArg {
+    Integer(i64),
+}
+
+type Operation = fn(Option<&HashMap<String, OperationArg>>, &mut DishData) -> DishResult;
+
+pub struct OperationInfo {
+    pub name: &'static str,
+    pub description: &'static str,
+    pub arguments: &'static [(&'static str, OperationArgType)],
+    pub op: Operation,
+}
+
+
 /// The Result type of codebake
 /// 
 pub type DishResult = result::Result<(), DishError>;
@@ -68,13 +86,36 @@ impl Dish {
     /// Takes a function of type `DishData -> DishResult` (AKA an operation)
     /// and consumes `self`, producing a new `Dish` with the 
     /// operation applied.
-    pub fn apply(this: &mut Dish, op: &dyn Fn(&mut DishData) -> DishResult) {
-        if let Dish::Success(data) = this {
-            let v = op(data);
+    pub fn apply(&mut self, op: Operation, args: Option<&HashMap<String, OperationArg>>) -> &mut Dish {
+        if let Dish::Success(data) = self {
+            let op = op;
+            let v = op(args, data);
             if let Err(e) = v {
-                *this = Dish::Failure(e);
+                *self = Dish::Failure(e);
             }
-        };
+        }
+        self
+    }
+}
+
+impl OperationArg {
+    fn integer(&self) -> Result<i64, DishError> {
+        // remove this when we add more argument types :p
+        #[allow(irrefutable_let_patterns)]
+        if let OperationArg::Integer(i) = self {
+            Ok(*i)
+        } else {
+            Err(DishError(format!("expected integer, got {}", self)))
+        }
+    } 
+}
+
+impl fmt::Display for Dish {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Dish::Success(data) => write!(f, "Dish({})", data),
+            Dish::Failure(e) => write!(f, "error: {}", e),
+        }
     }
 }
 
@@ -89,6 +130,15 @@ impl fmt::Display for DishData {
 
 impl fmt::Display for DishError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "op: {}\nreason: {}", self.failed_op, self.reason)
+        write!(f, "dish error: {}", self.0)
+    }
+}
+
+impl fmt::Display for OperationArg {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let s = match self {
+            OperationArg::Integer(_) => "integer",
+        };
+        write!(f, "{}", s)
     }
 }
