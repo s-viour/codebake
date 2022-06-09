@@ -5,14 +5,13 @@ the principle object in codebake is the *Dish*, which is just a container of dat
 ```
 ; (def mine (dish "hello world"))
 mine
-; ((rot13 13) (reverse mine))
+; ((rot13 13) ((reverse) mine))
 Dish("qyebj byyru")
-; ((rot13 13) (reverse mine))
+; ((rot13 13) ((reverse) mine))
 Dish("hello world")
-;
 ```
 
-explanation: `dish` is a function that constructs a `Dish` from a string. the `rot13` function takes a number and generates a new function that rotates a `Dish` by that number. `reverse` is a function that reverses the contents of a `Dish`. 
+explanation: `dish` is a function that constructs a `Dish` from a string. the `rot13` function takes a number and generates a new function that rotates a `Dish` by that number. `reverse` is a function that generates a new function that reverses the contents of a `Dish`. 
 
 # building
 codebake follows the standard `cargo build` procedure; however, we use **rust nightly** since codebake requires [RFC 2132](https://github.com/rust-lang/rust/issues/44490) for closure-copying functionality.
