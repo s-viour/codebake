@@ -5,6 +5,7 @@
 //! codebake `Dish`es
 //!
 
+extern crate base64;
 extern crate lazy_static;
 extern crate regex;
 

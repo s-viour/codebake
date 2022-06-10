@@ -86,9 +86,9 @@ impl fmt::Display for Expression {
                 match &*deref.borrow() {
                     Dish::Success(data) => match data {
                         DishData::Str(s) => format!("Dish(\"{}\")", s),
-                        DishData::Bin(b) => format!("Dish([{:?}])", b),
+                        DishData::Bin(b) => format!("Dish({:?})", b),
                     },
-                    Dish::Failure(e) => format!("dish error: {}", e),
+                    Dish::Failure(e) => format!("{}", e),
                 }
             }
         };

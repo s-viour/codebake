@@ -25,9 +25,13 @@
 //!
 
 /// This is the list of ALL OperationInfo structures
-pub static OPERATIONS: &[&OperationInfo] = &[&OPINFO_ROT13, &OPINFO_REVERSE];
+pub static OPERATIONS: &[&OperationInfo] = &[
+    &OPINFO_ROT13, &OPINFO_REVERSE, &OPINFO_FROMBASE64, &OPINFO_TOBASE64,
+    &OPINFO_FROMDECIMAL, &OPINFO_TODECIMAL,
+];
 
-use crate::{DishData, DishResult, OperationArg, OperationArgType, OperationInfo};
+use crate::{DishData, DishError, DishResult, OperationArg, OperationArgType, OperationInfo};
+use base64;
 use std::collections::HashMap;
 
 fn rot13_helper_bin(n: i64, s: &mut [u8]) {
@@ -88,4 +92,95 @@ fn reverse(_: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> Di
             Ok(())
         }
     }
+}
+
+static OPINFO_FROMBASE64: OperationInfo = OperationInfo {
+    name: "from-base64",
+    description: "converts from base64",
+    arguments: &[],
+    op: from_base64,
+};
+
+fn from_base64(_: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
+    let data = match dish {
+        DishData::Str(s) => s.as_bytes(),
+        DishData::Bin(_) => return Err(DishError("cannot convert binary data from base64".to_string())),
+    };
+
+    match base64::decode(data) {
+        Ok(d) => {
+            *dish = DishData::Bin(d);
+            Ok(())
+        },
+        Err(e) => Err(DishError(format!("base64 decode error: {}", e))),
+    }
+}
+
+static OPINFO_TOBASE64: OperationInfo = OperationInfo {
+    name: "to-base64",
+    description: "converts to base64",
+    arguments: &[],
+    op: to_base64,
+};
+
+fn to_base64(_: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
+    let data = match dish {
+        DishData::Str(s) => s.as_bytes(),
+        DishData::Bin(b) => b,
+    };
+
+    *dish = DishData::Str(base64::encode(data));
+    Ok(())
+}
+
+static OPINFO_FROMDECIMAL: OperationInfo = OperationInfo {
+    name: "from-decimal",
+    description: "converts a decimal-encoded string to its raw form",
+    arguments: &[],
+    op: from_decimal,
+};
+
+fn from_decimal(_: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
+    let data = match dish {
+        DishData::Str(s) => s.split_whitespace(),
+        DishData::Bin(_) => return Err(DishError("cannot convert binary data from decimal".to_string())),
+    };
+
+    let data: Result<Vec<u8>, std::num::ParseIntError> = data
+        .map(|x| x.parse::<u8>())
+        .collect();
+
+    let data = match data {
+        Ok(d) => d,
+        Err(e) => return Err(DishError(format!("{}", e))),
+    };
+    
+    match String::from_utf8(data.clone()) {
+        Ok(s) => *dish = DishData::Str(s),
+        Err(_) => *dish = DishData::Bin(data),
+    }
+    
+    Ok(())
+}
+
+static OPINFO_TODECIMAL: OperationInfo = OperationInfo {
+    name: "to-decimal",
+    description: "converts data to a decimal string",
+    arguments: &[],
+    op: to_decimal,
+};
+
+fn to_decimal(_: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
+    let data = match dish {
+        DishData::Str(s) => s.as_bytes(),
+        DishData::Bin(b) => b,
+    };
+
+    *dish = DishData::Str(data
+        .iter()
+        .map(|x| x.to_string())
+        .collect::<Vec<String>>()
+        .join(" "));
+    
+    Ok(())
 }
