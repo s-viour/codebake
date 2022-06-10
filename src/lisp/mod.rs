@@ -118,7 +118,7 @@ pub fn run_repl(env: Option<&mut Environment>) {
 
     loop {
         let mut expr = String::new();
-        print!("; ");
+        print!("codebake> ");
         io::stdout().flush().expect("failed to flush output");
 
         match stdin.read_line(&mut expr) {
@@ -141,7 +141,15 @@ fn default_env<'a>() -> Environment<'a> {
     let mut data: HashMap<String, Expression> = HashMap::new();
     data.insert("+".to_string(), functions::lisp_add());
     data.insert("-".to_string(), functions::lisp_subtract());
+    data.insert("apply".to_string(), functions::lisp_apply());
+    data.insert("head".to_string(), functions::lisp_head());
+    data.insert("rest".to_string(), functions::lisp_rest());
+    data.insert("init".to_string(), functions::lisp_init());
+    data.insert("last".to_string(), functions::lisp_last());
+
     data.insert("dish".to_string(), functions::lisp_dish());
+    data.insert("recipe".to_string(), functions::lisp_recipe());
+    data.insert("bake".to_string(), functions::lisp_bake());
 
     let mut env = Environment { data, outer: None };
 

@@ -105,6 +105,7 @@ pub fn eval_builtin_form(
             "def" => Some(eval_def_args(arg_forms, env)),
             "fn" => Some(eval_lambda_args(arg_forms)),
             "defn" => Some(eval_defn_args(arg_forms, env)),
+            "quote" => Some(eval_quote_args(arg_forms)),
             _ => None,
         },
         _ => None,
@@ -190,4 +191,12 @@ pub fn eval_defn_args(exprs: &[Expression], env: &mut Environment) -> Result<Exp
     );
 
     Ok(first_form.clone())
+}
+
+fn eval_quote_args(exprs: &[Expression]) -> Result<Expression, Error> {
+    if exprs.len() != 1 {
+        return Err(Error(format!("expected a single argument, got {}", exprs.len())));
+    }
+
+    Ok(exprs[0].clone())
 }
