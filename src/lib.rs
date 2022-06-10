@@ -1,15 +1,15 @@
-/// codebake is a toy data-processing framework and lisp
-/// inspired by [Cyberchef](https://gchq.github.io/CyberChef)
-/// 
-/// This file contains the top-level structures for working with
-/// codebake `Dish`es
-/// 
+//! codebake is a toy data-processing framework and lisp
+//! inspired by [Cyberchef](https://gchq.github.io/CyberChef)
+//!
+//! This file contains the top-level structures for working with
+//! codebake `Dish`es
+//!
 
-extern crate regex;
 extern crate lazy_static;
+extern crate regex;
 
-pub mod ops;
 pub mod lisp;
+pub mod ops;
 
 use std::collections::HashMap;
 use std::fmt;
@@ -17,7 +17,7 @@ use std::result;
 
 /// An error that occurred while performing an operation
 /// on some DishData. This is the `E` type in `codebake::Result`.
-/// 
+///
 #[derive(Clone)]
 pub struct DishError(String);
 
@@ -26,10 +26,10 @@ pub struct DishError(String);
 /// and are just indicators of how the data should be handled.
 /// This allows for operation fxns to handle textual and binary
 /// data separately.
-/// 
+///
 /// Str represents textual (unicode or ascii) data
 /// Bin represents generic binary data
-/// 
+///
 #[derive(Clone)]
 pub enum DishData {
     Str(String),
@@ -39,7 +39,7 @@ pub enum DishData {
 /// A Dish is the core component of codebake, and is basically
 /// just a wrapper around DishData and DishError. Haskellers may
 /// think of it as an `Either DishError DishData`.
-/// 
+///
 /// `Dish::apply` is the core function for operating on dishes.
 ///
 #[derive(Clone)]
@@ -49,26 +49,26 @@ pub enum Dish {
 }
 
 /// Represents an argument to an Operation declaratively
-/// 
+///
 #[derive(Debug)]
 pub enum OperationArgType {
     Integer,
 }
 
 /// Actually holds an argument value for an Operation
-/// 
+///
 #[derive(Clone, Debug)]
 pub enum OperationArg {
     Integer(i64),
 }
 
 /// Function pointer to an operation
-/// 
+///
 type Operation = fn(Option<&HashMap<String, OperationArg>>, &mut DishData) -> DishResult;
 
 /// Entirely statically declared struct that holds all the information
 /// about an Operation required for embedding it in the lisp
-/// 
+///
 pub struct OperationInfo {
     pub name: &'static str,
     pub description: &'static str,
@@ -77,7 +77,7 @@ pub struct OperationInfo {
 }
 
 /// The Result type of codebake
-/// 
+///
 pub type DishResult = result::Result<(), DishError>;
 
 impl Dish {
@@ -92,9 +92,13 @@ impl Dish {
     }
 
     /// Takes a function of type `DishData -> DishResult` (AKA an operation)
-    /// and consumes `self`, producing a new `Dish` with the 
+    /// and consumes `self`, producing a new `Dish` with the
     /// operation applied.
-    pub fn apply(&mut self, op: Operation, args: Option<&HashMap<String, OperationArg>>) -> &mut Dish {
+    pub fn apply(
+        &mut self,
+        op: Operation,
+        args: Option<&HashMap<String, OperationArg>>,
+    ) -> &mut Dish {
         if let Dish::Success(data) = self {
             let op = op;
             let v = op(args, data);
@@ -115,7 +119,7 @@ impl OperationArg {
         } else {
             Err(DishError(format!("expected integer, got {}", self)))
         }
-    } 
+    }
 }
 
 impl fmt::Display for Dish {

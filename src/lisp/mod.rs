@@ -1,24 +1,24 @@
-/// The lisp that codebake embeds as a scripting language
-/// 
-/// This file contains the struct and enum definitions as well as
-/// some top-level functions like `default_env` and `run_repl`.
-/// 
-/// Much of this lisp was written using this AMAZING tutorial!
-/// https://stopa.io/post/222
-///
+//! The lisp that codebake embeds as a scripting language
+//!
+//! This file contains the struct and enum definitions as well as
+//! some top-level functions like `default_env` and `run_repl`.
+//!
+//! Much of this lisp was written using this AMAZING tutorial!
+//! https://stopa.io/post/222
+//!
 
+mod eval;
 mod functions;
 mod parser;
-mod eval;
 
+use crate::lisp::parser::parse_eval;
+use crate::ops::OPERATIONS;
+use crate::{Dish, DishData};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt;
 use std::io::{self, Write};
 use std::rc::Rc;
-use crate::{Dish, DishData};
-use crate::ops::OPERATIONS;
-use crate::lisp::parser::parse_eval;
 
 pub type LispResult = std::result::Result<Expression, Error>;
 
@@ -29,10 +29,10 @@ pub type LispResult = std::result::Result<Expression, Error>;
 ///   * Bool   - a boolean value (`true` and `false`)
 ///   * String - a string
 ///   * List   - a list of expressions
-///   * Func   - a pointer to a function object 
+///   * Func   - a pointer to a function object
 ///   * Lambda - an expression with a set of captured variables
 ///   * Dish   - a pointer to a **mutable** Dish object
-/// 
+///
 #[derive(Clone)]
 pub enum Expression {
     Symbol(String),
@@ -52,13 +52,13 @@ pub struct Error(String);
 
 #[derive(Clone)]
 /// The environment that the lisp is operating in.
-/// 
+///
 /// The `data` field contains a hashmap of Strings -> Expressions
 /// for the interpreter
-/// 
+///
 pub struct Environment<'a> {
     data: HashMap<String, Expression>,
-    outer: Option<&'a Environment<'a>>
+    outer: Option<&'a Environment<'a>>,
 }
 
 #[derive(Clone)]
@@ -66,7 +66,6 @@ pub struct Lambda {
     params: Rc<Expression>,
     body: Rc<Expression>,
 }
-
 
 impl fmt::Display for Expression {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -76,12 +75,9 @@ impl fmt::Display for Expression {
             Expression::Bool(k) => k.to_string(),
             Expression::String(k) => k.clone(),
             Expression::List(k) => {
-                let xs: Vec<String> = k
-                    .iter()
-                    .map(|x| x.to_string())
-                    .collect();
+                let xs: Vec<String> = k.iter().map(|x| x.to_string()).collect();
                 format!("({})", xs.join(" "))
-            },
+            }
             Expression::Func(_) => "built-in function".to_string(),
             Expression::Lambda(_) => "lambda function".to_string(),
             Expression::Dish(dish) => {
@@ -108,10 +104,10 @@ impl fmt::Display for Error {
 
 /// Starts a repl on stdin and blocks until either
 /// an error occurs or stdin is closed
-/// 
+///
 pub fn run_repl(env: Option<&mut Environment>) {
     let mut maybeenv: Box<Environment>;
-    let mut env = match env {
+    let env = match env {
         Some(env) => env,
         None => {
             maybeenv = Box::new(default_env());
@@ -123,16 +119,15 @@ pub fn run_repl(env: Option<&mut Environment>) {
     loop {
         let mut expr = String::new();
         print!("; ");
-        io::stdout().flush()
-            .expect("failed to flush output");
-    
+        io::stdout().flush().expect("failed to flush output");
+
         match stdin.read_line(&mut expr) {
             Ok(0) => return,
-            Ok(_) => {},
+            Ok(_) => {}
             Err(e) => panic!("{}", e),
         }
 
-        match parse_eval(expr, &mut env) {
+        match parse_eval(expr, env) {
             Ok(res) => println!("{}", res),
             Err(e) => println!("error: {}", e),
         }
@@ -141,14 +136,14 @@ pub fn run_repl(env: Option<&mut Environment>) {
 
 /// Returns an instance of Environment that contains
 /// all the builtin functions and values
-/// 
+///
 fn default_env<'a>() -> Environment<'a> {
     let mut data: HashMap<String, Expression> = HashMap::new();
     data.insert("+".to_string(), functions::lisp_add());
     data.insert("-".to_string(), functions::lisp_subtract());
     data.insert("dish".to_string(), functions::lisp_dish());
 
-    let mut env = Environment { data, outer: None, };
+    let mut env = Environment { data, outer: None };
 
     for oi in OPERATIONS {
         functions::embed_operation(oi, &mut env);
