@@ -11,7 +11,7 @@ mod eval;
 mod functions;
 mod parser;
 
-use crate::lisp::parser::parse_eval;
+pub use crate::lisp::parser::parse_eval;
 use crate::ops::OPERATIONS;
 use crate::{Dish, DishData};
 use std::cell::RefCell;
@@ -137,7 +137,7 @@ pub fn run_repl(env: Option<&mut Environment>) {
 /// Returns an instance of Environment that contains
 /// all the builtin functions and values
 ///
-fn default_env<'a>() -> Environment<'a> {
+pub fn default_env<'a>() -> Environment<'a> {
     let mut data: HashMap<String, Expression> = HashMap::new();
     data.insert("+".to_string(), functions::lisp_add());
     data.insert("-".to_string(), functions::lisp_subtract());

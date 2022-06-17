@@ -70,11 +70,22 @@ type Operation = fn(Option<&HashMap<String, OperationArg>>, &mut DishData) -> Di
 /// Entirely statically declared struct that holds all the information
 /// about an Operation required for embedding it in the lisp
 ///
+#[derive(Clone)]
 pub struct OperationInfo {
     pub name: &'static str,
     pub description: &'static str,
     pub arguments: &'static [(&'static str, OperationArgType)],
     pub op: Operation,
+}
+
+impl PartialEq for OperationInfo {
+    fn eq(&self, other: &OperationInfo) -> bool {
+        self.name == other.name
+    }
+
+    fn ne(&self, other: &OperationInfo) -> bool {
+        self.name != other.name
+    }
 }
 
 /// The Result type of codebake

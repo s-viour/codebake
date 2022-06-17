@@ -1,0 +1,24 @@
+#app {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.half {
+    display: flex;
+    flex-direction: column;
+    width: 50%;
+}
+
+.half button {
+    width: 90%;
+}
+
+.textbox {
+    display: block;
+    font-family: monospace;
+    resize: none;
+    width: 90%;
+    height: 50em;
+    padding: 0;
+}
