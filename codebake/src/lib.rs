@@ -122,6 +122,16 @@ impl Dish {
     }
 }
 
+impl DishData {
+    /// Helper method that converts any DishData to bytes
+    fn as_bytes(&self) -> &[u8] {
+        match self {
+            DishData::Str(s) => s.as_bytes(),
+            DishData::Bin(b) => b,
+        }
+    }
+}
+
 impl OperationArg {
     fn integer(&self) -> Result<i64, DishError> {
         // remove this when we add more argument types :p
