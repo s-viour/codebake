@@ -131,6 +131,53 @@ fn from_octal(_: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) ->
     Ok(())
 }
 
+pub static OPINFO_TOHEX: OperationInfo = OperationInfo {
+    name: "to-hex",
+    description: "converts data into a hexadecimal encoded string",
+    arguments: &[],
+    op: to_hex,
+};
+
+fn to_hex(_: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
+    *dish = DishData::Str(dish.as_bytes()
+        .iter()
+        .map(|x| format!("{:x}", x))
+        .collect::<Vec<String>>()
+        .join(" "));
+
+    Ok(())
+}
+
+pub static OPINFO_FROMHEX: OperationInfo = OperationInfo {
+    name: "from-hex",
+    description: "converts a hexadecimal encoded string into its raw form",
+    arguments: &[],
+    op: from_hex,
+};
+
+fn from_hex(_: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
+    let data = match dish {
+        DishData::Str(s) => s.split_whitespace(),
+        DishData::Bin(_) => return Err(DishError("cannot convert binary data from hex".to_string())),
+    };
+
+    let data: Result<Vec<u8>, std::num::ParseIntError> = data
+        .map(|x| u8::from_str_radix(x, 16))
+        .collect();
+
+    let data = match data {
+        Ok(d) => d,
+        Err(e) => return Err(DishError(format!("{}", e))),
+    };
+    
+    match String::from_utf8(data.clone()) {
+        Ok(s) => *dish = DishData::Str(s),
+        Err(_) => *dish = DishData::Bin(data),
+    }
+    
+    Ok(())
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -150,6 +197,33 @@ mod tests {
         let mut data = DishData::Str("52".to_string());
         let _expected = DishData::Bin(vec![42]);
         assert!(matches!(from_octal(None, &mut data), Ok(())));
+        assert!(matches!(data, _expected));
+    }
+
+    #[test]
+    fn test_to_hex() {
+        let mut data = DishData::Bin(vec![15]);
+        let _expected = DishData::Str(String::from("0f"));
+        assert!(matches!(to_hex(None, &mut data), Ok(())));
+        assert!(matches!(data, _expected));
+
+        let mut data = DishData::Bin(vec![26]);
+        let _expected = DishData::Str(String::from("1a"));
+        assert!(matches!(to_hex(None, &mut data), Ok(())));
+        assert!(matches!(data, _expected));
+    }
+
+    #[test]
+    fn test_from_hex() {
+        let mut data = DishData::Str(String::from("0f"));
+        let _expected = DishData::Bin(vec![15]);
+
+        assert!(matches!(from_hex(None, &mut data), Ok(())));
+        assert!(matches!(data, _expected));
+
+        let mut data = DishData::Str(String::from("1a"));
+        let _expected = DishData::Bin(vec![26]);
+        assert!(matches!(from_hex(None, &mut data), Ok(())));
         assert!(matches!(data, _expected));
     }
 }
