@@ -28,15 +28,17 @@ impl Component for App {
         match msg {
             Self::Message::Run => {
                 let input: String = self.text_input.cast::<HtmlTextAreaElement>().unwrap().value();
-                let split = input.split('\n');
+                let split = get_expressions(&input);
                 log::debug!("running script {}", input);
                 
                 for expr in split {
                     if expr == "" {
                         continue;
                     }
+                    log::debug!("{}", expr);
 
-                    match lisp::parse_eval(expr.to_string(), &mut self.env) {
+                    let expr_str = expr.to_string();
+                    match lisp::parse_eval(expr_str, &mut self.env) {
                         Ok(expr) => self.output = format!("{}", expr),
                         Err(e) => self.output = format!("{}", e),
                     }
@@ -71,4 +73,29 @@ impl Component for App {
 fn main() {
     wasm_logger::init(wasm_logger::Config::default());
     yew::start_app::<App>();
+}
+
+/// helper function to get a vector of the expressions in a string
+/// 
+fn get_expressions(s: &str) -> Vec<String> {
+    let mut count = 0;
+    let mut last = 0;
+    let mut exprs: Vec<String> = Vec::new();
+    let new_s = s.replace('\n', " ");
+
+    for (i, c) in new_s.chars().enumerate() {
+        match c {
+            '(' => count += 1,
+            ')' => count -= 1,
+            _ => {}
+        }
+
+        if count == 0 {
+            let slice = &new_s[last..i+1];
+            exprs.push(slice.to_string());
+            last = i;
+        }
+    }
+
+    exprs
 }

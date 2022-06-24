@@ -121,10 +121,16 @@ pub fn run_repl(env: Option<&mut Environment>) {
         print!("codebake> ");
         io::stdout().flush().expect("failed to flush output");
 
-        match stdin.read_line(&mut expr) {
-            Ok(0) => return,
-            Ok(_) => {}
-            Err(e) => panic!("{}", e),
+        loop {
+            match stdin.read_line(&mut expr) {
+                Ok(0) => return,
+                Ok(_) => {}
+                Err(e) => panic!("{}", e),
+            }
+
+            if check_parens(&expr) {
+                break;
+            }
         }
 
         match parse_eval(expr, env) {
@@ -132,6 +138,22 @@ pub fn run_repl(env: Option<&mut Environment>) {
             Err(e) => println!("error: {}", e),
         }
     }
+}
+
+fn check_parens(s: &String) -> bool {
+    let mut count = 0;
+    for i in s.chars() {
+        match i {
+            '(' => count += 1,
+            ')' => count -= 1,
+            _ => {},
+        }
+        if count < 0 {
+            return false;
+        }
+    }
+
+    count == 0
 }
 
 /// Returns an instance of Environment that contains
