@@ -119,9 +119,12 @@ pub fn lisp_head() -> Expression {
         }
         match &args[0] {
             Expression::List(v) => {
-                v.get(0)
-                    .ok_or_else(|| Error("empty list".to_string()))
+                if v.len() == 0 {
+                    return Ok(Expression::Symbol("nil".to_string()));
+                }
+                Ok(v.get(0)
                     .map(|x| x.clone())
+                    .unwrap())
             },
             _ => Err(Error("expected list".to_string())),
         }
@@ -235,8 +238,7 @@ pub fn lisp_bake() -> Expression {
                 Expression::Func(f) => {
                     funcs.push(f.clone())
                 },
-                other => {
-                    println!("didn't get func, got {}", other);
+                _ => {
                     return Err(Error("recipe must be list of functions".to_string()))
                 }
             }
@@ -247,6 +249,97 @@ pub fn lisp_bake() -> Expression {
         }
 
         Ok(args[1].clone())
+    }))
+}
+
+pub fn lisp_empty() -> Expression {
+    Expression::Func(Rc::new(|args: &[Expression]| -> LispResult {
+        if args.len() != 1 {
+            return Err(Error(format!("expected 1 argument, got {}", args.len())));
+        }
+
+        let nil = Expression::Symbol("nil".to_string());
+
+        Ok(match &args[0] {
+            Expression::List(v) => Expression::Bool(v.is_empty()),
+            Expression::String(s) => Expression::Bool(s.is_empty()),
+            Expression::Dish(d) => {
+                match &*d.borrow() {
+                    Dish::Success(data) => {
+                        Expression::Bool(data.as_bytes().len() == 0)
+                    },
+                    _ => Expression::Bool(false)
+                }
+            },
+            _ => nil
+        })
+    }))
+}
+
+pub fn lisp_cons() -> Expression {
+    Expression::Func(Rc::new(|args: &[Expression]| -> LispResult {
+        if args.len() != 2 {
+            return Err(Error(format!("expected 2 arguments, got {}", args.len())));
+        }
+
+        if let Expression::List(mut l) = args[1].clone() {
+            l.insert(0, args[0].clone());
+            Ok(Expression::List(l))
+        } else {
+            Err(Error("expected 2nd argument to be a list".to_string()))
+        }
+    }))
+}
+
+pub fn lisp_eq() -> Expression {
+    Expression::Func(Rc::new(|args: &[Expression]| -> LispResult {
+        if args.len() != 2 {
+            return Err(Error(format!("expected 2 arguments, got {}", args.len())));
+        }
+
+        if std::mem::discriminant(&args[0]) != std::mem::discriminant(&args[1]) {
+            return Ok(Expression::Bool(false));
+        }
+
+        if let Expression::Symbol(s1) = &args[0] {
+            if let Expression::Symbol(s2) = &args[1] {
+                return Ok(Expression::Bool(s1 == s2))
+            } else {
+                return Ok(Expression::Bool(false));
+            }
+        } else if let Expression::String(s1) = &args[0] {
+            if let Expression::String(s2) = &args[1] {
+                return Ok(Expression::Bool(s1 == s2))
+            } else {
+                return Ok(Expression::Bool(false));
+            }
+        } else if let Expression::Number(s1) = &args[0] {
+            if let Expression::Number(s2) = &args[1] {
+                return Ok(Expression::Bool(s1 == s2))
+            } else {
+                return Ok(Expression::Bool(false));
+            }
+        } else if let Expression::Bool(s1) = &args[0] {
+            if let Expression::Bool(s2) = &args[1] {
+                return Ok(Expression::Bool(s1 == s2))
+            } else {
+                return Ok(Expression::Bool(false));
+            }
+        } else if let Expression::Dish(s1) = &args[0] {
+            if let Expression::Dish(s2) = &args[1] {
+                match &*s1.borrow() {
+                    Dish::Failure(_) => return Ok(Expression::Bool(false)),
+                    Dish::Success(d1) => match &*s2.borrow() {
+                        Dish::Failure(_) => return Ok(Expression::Bool(false)),
+                        Dish::Success(d2) => return Ok(Expression::Bool(d1 == d2)),
+                    }
+                }
+            } else {
+                return Ok(Expression::Bool(false));
+            }
+        }
+
+        Ok(Expression::Bool(false))
     }))
 }
 

@@ -31,7 +31,7 @@ pub struct DishError(String);
 /// Str represents textual (unicode or ascii) data
 /// Bin represents generic binary data
 ///
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum DishData {
     Str(String),
     Bin(Vec<u8>),

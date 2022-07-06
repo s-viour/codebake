@@ -10,6 +10,7 @@
 mod eval;
 mod functions;
 mod parser;
+mod functions_nonnative;
 
 pub use crate::lisp::parser::parse_eval;
 use crate::ops::OPERATIONS;
@@ -163,11 +164,14 @@ pub fn default_env<'a>() -> Environment<'a> {
     let mut data: HashMap<String, Expression> = HashMap::new();
     data.insert("+".to_string(), functions::lisp_add());
     data.insert("-".to_string(), functions::lisp_subtract());
+    data.insert("=".to_string(), functions::lisp_eq());
     data.insert("apply".to_string(), functions::lisp_apply());
     data.insert("head".to_string(), functions::lisp_head());
     data.insert("rest".to_string(), functions::lisp_rest());
     data.insert("init".to_string(), functions::lisp_init());
     data.insert("last".to_string(), functions::lisp_last());
+    data.insert("empty".to_string(), functions::lisp_empty());
+    data.insert("cons".to_string(), functions::lisp_cons());
 
     data.insert("dish".to_string(), functions::lisp_dish());
     data.insert("recipe".to_string(), functions::lisp_recipe());
@@ -177,6 +181,11 @@ pub fn default_env<'a>() -> Environment<'a> {
 
     for oi in OPERATIONS {
         functions::embed_operation(oi, &mut env);
+    }
+
+    for fxn in functions_nonnative::FUNCTIONS_NONNATIVE {
+        parse_eval(fxn.to_string(), &mut env)
+            .expect("non-native function failed to evaluate!");
     }
 
     env

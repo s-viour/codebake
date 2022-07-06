@@ -20,7 +20,7 @@ pub fn tokenize(expr: String) -> Vec<String> {
         // i used cyberchef to build & test this regex
         // kinda funny since we're building a cyberchef clone
         // *i used the stones to destroy the stones*
-        static ref RE: Regex = Regex::new("((\"(.*?)\")|[a-zA-Z0-9!@#$&()\\-`.+,/\"]+|\\(|\\))").unwrap();
+        static ref RE: Regex = Regex::new("((\"(.*?)\")|[a-zA-Z0-9!@#$&()=\\-`.+,/\"]+|\\(|\\))").unwrap();
     }
 
     let spread = expr.replace('(', " ( ").replace(')', " ) ");
