@@ -13,14 +13,6 @@ the principle object in codebake is the *Dish*, which is just a **mutable** cont
 
 ## the lisp
 ---
-**note:** currently, the lisp reads line-by-line and will not look for terminating parenthesis on more lines. that means that code like this won't work:
-```clj
-(defn my-function (x)
-    ((rot13 x) (dish "hello world)))
-```
-sorry! it'll be fixed soon.
-
-
 the embedded lisp is currently the primary (and only) way of using codebake. there are plans to build a webapp similar to [Cyberchef](https://gchq.github.io/CyberChef/) soon, but for now, the lisp is how you use codebake. here's an example:
 ```clj
 codebake> (def my-dish (dish "hello world!"))
@@ -39,7 +31,7 @@ note that:
 * the `bake` function applies a recipe to a `Dish`.
 
 the `bake` and `recipe` functions are implemented for convenience, but applying operations directly to dishes is perfectly viable too. additionally, the lisp supports `lambda` and `defn` for defining functions. here's an example demonstrating all this:
-```clj
+```lisp
 codebake> (defn rot-reverse (n text) (reverse ((rot13 n) (dish text))))
 rot-reverse
 codebake> (rot-reverse 13 "hello world!")
