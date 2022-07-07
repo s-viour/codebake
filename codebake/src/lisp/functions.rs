@@ -293,53 +293,13 @@ pub fn lisp_cons() -> Expression {
 
 pub fn lisp_eq() -> Expression {
     Expression::Func(Rc::new(|args: &[Expression]| -> LispResult {
-        if args.len() != 2 {
-            return Err(Error(format!("expected 2 arguments, got {}", args.len())));
+        if args.len() < 1 {
+            return Err(Error(format!("expected at least 1 argument, got {}", args.len())));
         }
 
-        if std::mem::discriminant(&args[0]) != std::mem::discriminant(&args[1]) {
-            return Ok(Expression::Bool(false));
-        }
-
-        if let Expression::Symbol(s1) = &args[0] {
-            if let Expression::Symbol(s2) = &args[1] {
-                return Ok(Expression::Bool(s1 == s2))
-            } else {
-                return Ok(Expression::Bool(false));
-            }
-        } else if let Expression::String(s1) = &args[0] {
-            if let Expression::String(s2) = &args[1] {
-                return Ok(Expression::Bool(s1 == s2))
-            } else {
-                return Ok(Expression::Bool(false));
-            }
-        } else if let Expression::Number(s1) = &args[0] {
-            if let Expression::Number(s2) = &args[1] {
-                return Ok(Expression::Bool(s1 == s2))
-            } else {
-                return Ok(Expression::Bool(false));
-            }
-        } else if let Expression::Bool(s1) = &args[0] {
-            if let Expression::Bool(s2) = &args[1] {
-                return Ok(Expression::Bool(s1 == s2))
-            } else {
-                return Ok(Expression::Bool(false));
-            }
-        } else if let Expression::Dish(s1) = &args[0] {
-            if let Expression::Dish(s2) = &args[1] {
-                match &*s1.borrow() {
-                    Dish::Failure(_) => return Ok(Expression::Bool(false)),
-                    Dish::Success(d1) => match &*s2.borrow() {
-                        Dish::Failure(_) => return Ok(Expression::Bool(false)),
-                        Dish::Success(d2) => return Ok(Expression::Bool(d1 == d2)),
-                    }
-                }
-            } else {
-                return Ok(Expression::Bool(false));
-            }
-        }
-
-        Ok(Expression::Bool(false))
+        let mut iter = args.iter();
+        let fst = iter.next().unwrap();
+        Ok(Expression::Bool(iter.all(|x| x == fst)))
     }))
 }
 

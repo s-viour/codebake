@@ -103,6 +103,58 @@ impl fmt::Display for Error {
     }
 }
 
+// i'm unsure if there's a better way to implement
+// PartialEq for this. if anyone has a better way, lmk!
+//
+impl PartialEq for Expression {
+    fn eq(&self, other: &Self) -> bool {
+        // if the enumerations aren't 
+        if std::mem::discriminant(self) != std::mem::discriminant(other) {
+            return false;
+        }
+
+        if let Expression::Symbol(s1) = self {
+            if let Expression::Symbol(s2) = other {
+                return s1 == s2;
+            } else {
+                return false;
+            }
+        } else if let Expression::String(s1) = self {
+            if let Expression::String(s2) = other {
+                return s1 == s2
+            } else {
+                return false;
+            }
+        } else if let Expression::Number(s1) = self {
+            if let Expression::Number(s2) = other {
+                return s1 == s2;
+            } else {
+                return false;
+            }
+        } else if let Expression::Bool(s1) = self {
+            if let Expression::Bool(s2) = other {
+                return s1 == s2;
+            } else {
+                return false;
+            }
+        } else if let Expression::Dish(s1) = self {
+            if let Expression::Dish(s2) = other {
+                match &*s1.borrow() {
+                    Dish::Failure(_) => return false,
+                    Dish::Success(d1) => match &*s2.borrow() {
+                        Dish::Failure(_) => return false,
+                        Dish::Success(d2) => return d1 == d2,
+                    }
+                }
+            } else {
+                return false
+            }
+        }
+
+        false
+    }
+}
+
 /// Starts a repl on stdin and blocks until either
 /// an error occurs or stdin is closed
 ///
