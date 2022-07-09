@@ -218,11 +218,11 @@ pub fn default_env<'a>() -> Environment<'a> {
     data.insert("-".to_string(), functions::lisp_subtract());
     data.insert("=".to_string(), functions::lisp_eq());
     data.insert("apply".to_string(), functions::lisp_apply());
-    data.insert("head".to_string(), functions::lisp_head());
+    data.insert("first".to_string(), functions::lisp_head());
     data.insert("rest".to_string(), functions::lisp_rest());
-    data.insert("init".to_string(), functions::lisp_init());
+    data.insert("butlast".to_string(), functions::lisp_init());
     data.insert("last".to_string(), functions::lisp_last());
-    data.insert("empty".to_string(), functions::lisp_empty());
+    data.insert("empty?".to_string(), functions::lisp_empty());
     data.insert("cons".to_string(), functions::lisp_cons());
 
     data.insert("dish".to_string(), functions::lisp_dish());
