@@ -106,9 +106,16 @@ pub fn lisp_subtract() -> Expression {
 
 pub fn lisp_apply() -> Expression {
     Expression::Func(Rc::new(|args: &[Expression]| -> LispResult {
-        let list = Expression::List(args.iter().map(|x| x.clone()).collect());
-
-        Ok(list)
+        if args.len() != 2 {
+            return Err(Error(format!("expected 2 arguments, got {}", args.len())));
+        }
+        match &args[0] {
+            Expression::Func(f) => match &args[1] {
+                Expression::List(l) => f(l),
+                _ => Err(Error("second argument to `apply` must be a list".to_string())),
+            }
+            _ => Err(Error("first argument to `apply` must be a function".to_string())),
+        }
     }))
 }
 

@@ -14,7 +14,7 @@ mod functions_nonnative;
 
 pub use crate::lisp::parser::parse_eval;
 use crate::ops::OPERATIONS;
-use crate::{Dish, DishData};
+use crate::Dish;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt;
@@ -84,14 +84,8 @@ impl fmt::Display for Expression {
             Expression::Dish(dish) => {
                 // so much deref
                 let deref = &*dish;
-                match &*deref.borrow() {
-                    Dish::Success(data) => match data {
-                        DishData::Str(s) => format!("Dish(\"{}\")", s),
-                        DishData::Bin(b) => format!("Dish({:?})", b),
-                    },
-                    Dish::Failure(e) => format!("{}", e),
-                }
-            }
+                format!("{}", deref.borrow())
+            },
         };
         write!(f, "{}", s)
     }

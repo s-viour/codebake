@@ -156,8 +156,8 @@ impl fmt::Display for Dish {
 impl fmt::Display for DishData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            DishData::Str(s) => write!(f, "{}", s),
-            DishData::Bin(b) => write!(f, "{}", String::from_utf8_lossy(b)),
+            DishData::Str(s) => write!(f, "\"{}\"", s),
+            DishData::Bin(b) => write!(f, "\"{}\"", String::from_utf8_lossy(b)),
         }
     }
 }
