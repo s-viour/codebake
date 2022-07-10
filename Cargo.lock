@@ -47,6 +47,7 @@ version = "0.1.0"
 dependencies = [
  "base64",
  "lazy_static",
+ "radix_fmt",
  "regex",
 ]
 
@@ -259,6 +260,12 @@ checksum = "a1feb54ed693b93a84e14094943b84b7c4eae204c512b7ccb95ab0c66d278ad1"
 dependencies = [
  "proc-macro2",
 ]
+
+[[package]]
+name = "radix_fmt"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce082a9940a7ace2ad4a8b7d0b1eac6aa378895f18be598230c5f2284ac05426"
 
 [[package]]
 name = "regex"
