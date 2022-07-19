@@ -236,8 +236,8 @@ fn from_radix_helper(radix: u32, dish: &mut DishData) -> DishResult {
     Ok(())
 }
 
-pub static OPINFO_MATCH: OperationInfo = OperationInfo {
-    name: "match",
+pub static OPINFO_REGEXMATCH: OperationInfo = OperationInfo {
+    name: "regex-match",
     description: "finds substrings that match regex",
     arguments: &[("pattern", OperationArgType::String)],
     op: regex_match,
