@@ -244,7 +244,7 @@ pub static OPINFO_REGEXMATCH: OperationInfo = OperationInfo {
 };
 
 fn regex_match(args: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
-    let pattern = args.unwrap().get("pattern").unwrap().to_string();
+    let pattern = args.unwrap().get("pattern").unwrap().string();
     let re = Regex::new(&pattern).unwrap();
     let mut out = Vec::new();
     *dish = DishData::Str(dish.to_string());
