@@ -244,7 +244,7 @@ pub static OPINFO_REGEXMATCH: OperationInfo = OperationInfo {
 };
 
 fn regex_match(args: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
-    let pattern = args.unwrap().get("pattern").unwrap().string();
+    let pattern = args.unwrap().get("pattern").unwrap().string()?;
     let re = Regex::new(&pattern).unwrap();
     let mut out = Vec::new();
     *dish = DishData::Str(dish.to_string());
@@ -258,6 +258,26 @@ fn regex_match(args: Option<&HashMap<String, OperationArg>>, dish: &mut DishData
     Ok(())
 }
 
+pub static OPINFO_REGEXREPLACE: OperationInfo = OperationInfo {
+    name: "regex-replace",
+    description: "replaces substrings using regex groups",
+    arguments: &[("pattern", OperationArgType::String), ("replacement", OperationArgType::String)],
+    op: regex_replace,
+};
+
+fn regex_replace(args: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
+    let pattern = args.unwrap().get("pattern").unwrap().string()?;
+    let replacement = args.unwrap().get("replacement").unwrap().string()?;
+    
+    println!("{}, {}", pattern, replacement);
+    
+    let re = Regex::new(&pattern).unwrap();
+    
+    *dish = DishData::Str(dish.to_string());
+    *dish = DishData::Str(re.replace_all(&dish.to_string(), replacement).to_string());
+    
+    Ok(())
+}
 
 #[cfg(test)]
 mod tests {
