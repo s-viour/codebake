@@ -134,17 +134,23 @@ impl DishData {
     }
 }
 
-impl OperationArg {
+ impl OperationArg {
     fn integer(&self) -> Result<i64, DishError> {
-        // remove this when we add more argument types :p
-        #[allow(irrefutable_let_patterns)]
         if let OperationArg::Integer(i) = self {
             Ok(*i)
         } else {
             Err(DishError(format!("expected integer, got {}", self)))
         }
     }
-}
+
+    fn string(&self) -> Result<String, DishError> {
+        if let OperationArg::String(s) = self {
+            Ok(s.clone())
+        } else {
+            Err(DishError(format!("expected string, got {}", self)))
+        }
+    }
+ }
 
 impl fmt::Display for Dish {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
