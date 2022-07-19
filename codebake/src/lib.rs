@@ -54,6 +54,7 @@ pub enum Dish {
 #[derive(Debug)]
 pub enum OperationArgType {
     Integer,
+    String,
 }
 
 /// Actually holds an argument value for an Operation
@@ -61,6 +62,7 @@ pub enum OperationArgType {
 #[derive(Clone, Debug)]
 pub enum OperationArg {
     Integer(i64),
+    String(String),
 }
 
 /// Function pointer to an operation
@@ -172,6 +174,7 @@ impl fmt::Display for OperationArg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let s = match self {
             OperationArg::Integer(_) => "integer",
+            OperationArg::String(_) => "string",
         };
         write!(f, "{}", s)
     }

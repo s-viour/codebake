@@ -62,6 +62,9 @@ fn parse_arg(typ: &OperationArgType, expr: &Expression) -> Result<OperationArg, 
                 Err(Error("expected integer".to_string()))
             }
         }
+        OperationArgType::String => {
+            Ok(OperationArg::String(expr.to_string()))
+        }
     }
 }
 

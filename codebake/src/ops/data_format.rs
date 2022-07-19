@@ -1,6 +1,7 @@
 use crate::{DishData, DishError, DishResult, OperationArg, OperationArgType, OperationInfo};
 use std::collections::HashMap;
 use base64;
+use regex::Regex;
 
 
 pub static OPINFO_FROMBASE64: OperationInfo = OperationInfo {
@@ -231,6 +232,31 @@ fn from_radix_helper(radix: u32, dish: &mut DishData) -> DishResult {
         Ok(s) => *dish = DishData::Str(s),
         Err(_) => *dish = DishData::Bin(data),
     }
+    
+    Ok(())
+}
+
+pub static OPINFO_MATCH: OperationInfo = OperationInfo {
+    name: "match",
+    description: "finds substrings that match regex",
+    arguments: &[("pattern", OperationArgType::String)],
+    op: regex_match,
+};
+
+fn regex_match(args: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
+    let pattern = args.unwrap().get("pattern").unwrap().to_string();
+    let re = Regex::new(&pattern).unwrap();
+    let mut out = Vec::new();
+    *dish = DishData::Str(dish.to_string());
+    
+    println!("{}", dish);
+    
+    for m in re.find_iter(&dish.to_string()) {
+        println!("added {}", m.as_str());
+        out.push(m.as_str().to_string())
+    }
+    
+    *dish = DishData::Str(out.join("\n"));
     
     Ok(())
 }
