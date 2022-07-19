@@ -249,10 +249,7 @@ fn regex_match(args: Option<&HashMap<String, OperationArg>>, dish: &mut DishData
     let mut out = Vec::new();
     *dish = DishData::Str(dish.to_string());
     
-    println!("{}", dish);
-    
     for m in re.find_iter(&dish.to_string()) {
-        println!("added {}", m.as_str());
         out.push(m.as_str().to_string())
     }
     
