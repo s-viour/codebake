@@ -252,10 +252,7 @@ fn regex_match(args: Option<&HashMap<String, OperationArg>>, dish: &mut DishData
         DishData::Bin(_) => return Err(DishError("dish should be string, got binary".to_string()))
     };
     
-    println!("{}", *data);
-    
     for m in re.find_iter(&data) {
-        println!("{}", m.as_str());
         out.push(m.as_str().to_string())
     }
     
