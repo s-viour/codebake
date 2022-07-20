@@ -54,6 +54,7 @@ pub enum Dish {
 #[derive(Debug)]
 pub enum OperationArgType {
     Integer,
+    String,
 }
 
 /// Actually holds an argument value for an Operation
@@ -61,6 +62,7 @@ pub enum OperationArgType {
 #[derive(Clone, Debug)]
 pub enum OperationArg {
     Integer(i64),
+    String(String),
 }
 
 /// Function pointer to an operation
@@ -132,17 +134,23 @@ impl DishData {
     }
 }
 
-impl OperationArg {
+ impl OperationArg {
     fn integer(&self) -> Result<i64, DishError> {
-        // remove this when we add more argument types :p
-        #[allow(irrefutable_let_patterns)]
         if let OperationArg::Integer(i) = self {
             Ok(*i)
         } else {
             Err(DishError(format!("expected integer, got {}", self)))
         }
     }
-}
+
+    fn string(&self) -> Result<String, DishError> {
+        if let OperationArg::String(s) = self {
+            Ok(s.clone())
+        } else {
+            Err(DishError(format!("expected string, got {}", self)))
+        }
+    }
+ }
 
 impl fmt::Display for Dish {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -172,6 +180,7 @@ impl fmt::Display for OperationArg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let s = match self {
             OperationArg::Integer(_) => "integer",
+            OperationArg::String(_) => "string",
         };
         write!(f, "{}", s)
     }

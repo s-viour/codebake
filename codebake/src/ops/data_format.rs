@@ -1,6 +1,7 @@
 use crate::{DishData, DishError, DishResult, OperationArg, OperationArgType, OperationInfo};
 use std::collections::HashMap;
 use base64;
+use regex::Regex;
 
 
 pub static OPINFO_FROMBASE64: OperationInfo = OperationInfo {
@@ -235,6 +236,54 @@ fn from_radix_helper(radix: u32, dish: &mut DishData) -> DishResult {
     Ok(())
 }
 
+pub static OPINFO_REGEXMATCH: OperationInfo = OperationInfo {
+    name: "regex-match",
+    description: "finds substrings that match regex",
+    arguments: &[("pattern", OperationArgType::String)],
+    op: regex_match,
+};
+
+fn regex_match(args: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
+    let pattern = args.unwrap().get("pattern").unwrap().string()?;
+    let re = Regex::new(&pattern).unwrap();
+    let mut out = Vec::new();
+    let data = match dish {
+        DishData::Str(s) => s,
+        DishData::Bin(_) => return Err(DishError("dish should be string, got binary".to_string()))
+    };
+    
+    println!("{}", *data);
+    
+    for m in re.find_iter(&data) {
+        println!("{}", m.as_str());
+        out.push(m.as_str().to_string())
+    }
+    
+    *dish = DishData::Str(out.join("\n"));
+    
+    Ok(())
+}
+
+pub static OPINFO_REGEXREPLACE: OperationInfo = OperationInfo {
+    name: "regex-replace",
+    description: "replaces substrings using regex groups",
+    arguments: &[("pattern", OperationArgType::String), ("replacement", OperationArgType::String)],
+    op: regex_replace,
+};
+
+fn regex_replace(args: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
+    let pattern = args.unwrap().get("pattern").unwrap().string()?;
+    let replacement = args.unwrap().get("replacement").unwrap().string()?;
+    let re = Regex::new(&pattern).unwrap();
+    let data = match dish {
+        DishData::Str(s) => s,
+        DishData::Bin(_) => return Err(DishError("dish should be string, got binary".to_string()))
+    };
+    
+    *dish = DishData::Str(re.replace_all(&data, replacement).to_string());
+    
+    Ok(())
+}
 
 #[cfg(test)]
 mod tests {
