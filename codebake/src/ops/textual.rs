@@ -24,6 +24,8 @@ fn rot13_helper_str(n: i64, s: &mut str) {
 pub static OPINFO_ROT13: OperationInfo = OperationInfo {
     name: "rot13",
     description: "rotates characters in the input by the specified amount",
+    authors: &["s-viour"],
+    category: "Textual",
     arguments: &[("n", OperationArgType::Integer)],
     op: rot13,
 };
@@ -45,6 +47,8 @@ fn rot13(args: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> D
 pub static OPINFO_REVERSE: OperationInfo = OperationInfo {
     name: "reverse",
     description: "reverses the input",
+    authors: &["s-viour"],
+    category: "Textual",
     arguments: &[],
     op: reverse,
 };

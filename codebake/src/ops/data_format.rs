@@ -7,6 +7,8 @@ use regex::Regex;
 pub static OPINFO_FROMBASE64: OperationInfo = OperationInfo {
     name: "from-base64",
     description: "converts from base64",
+    authors: &["s-viour"],
+    category: "Data Format",
     arguments: &[],
     op: from_base64,
 };
@@ -29,6 +31,8 @@ fn from_base64(_: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -
 pub static OPINFO_TOBASE64: OperationInfo = OperationInfo {
     name: "to-base64",
     description: "converts to base64",
+    authors: &["s-viour"],
+    category: "Data Format",
     arguments: &[],
     op: to_base64,
 };
@@ -41,6 +45,8 @@ fn to_base64(_: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> 
 pub static OPINFO_FROMDECIMAL: OperationInfo = OperationInfo {
     name: "from-decimal",
     description: "converts a decimal-encoded string to its raw form",
+    authors: &["s-viour"],
+    category: "Data Format",
     arguments: &[],
     op: from_decimal,
 };
@@ -52,6 +58,8 @@ fn from_decimal(_: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) 
 pub static OPINFO_TODECIMAL: OperationInfo = OperationInfo {
     name: "to-decimal",
     description: "converts data to a decimal string",
+    authors: &["s-viour"],
+    category: "Data Format",
     arguments: &[],
     op: to_decimal,
 };
@@ -69,6 +77,8 @@ fn to_decimal(_: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) ->
 pub static OPINFO_FROMOCTAL: OperationInfo = OperationInfo {
     name: "from-octal",
     description: "converts an octal-encoded string to its raw form",
+    authors: &["s-viour"],
+    category: "Data Format",
     arguments: &[],
     op: from_octal,
 };
@@ -80,6 +90,8 @@ fn from_octal(_: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) ->
 pub static OPINFO_TOOCTAL: OperationInfo = OperationInfo {
     name: "to-octal",
     description: "converts data to an octal string",
+    authors: &["s-viour"],
+    category: "Data Format",
     arguments: &[],
     op: to_octal,
 };
@@ -97,6 +109,8 @@ fn to_octal(_: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> D
 pub static OPINFO_FROMHEX: OperationInfo = OperationInfo {
     name: "from-hex",
     description: "converts a hexadecimal encoded string into its raw form",
+    authors: &["s-viour"],
+    category: "Data Format",
     arguments: &[],
     op: from_hex,
 };
@@ -108,6 +122,8 @@ fn from_hex(_: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> D
 pub static OPINFO_TOHEX: OperationInfo = OperationInfo {
     name: "to-hex",
     description: "converts data into a hexadecimal encoded string",
+    authors: &["s-viour"],
+    category: "Data Format",
     arguments: &[],
     op: to_hex,
 };
@@ -125,6 +141,8 @@ fn to_hex(_: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> Dis
 pub static OPINFO_FROMBINARY: OperationInfo = OperationInfo {
     name: "from-binary",
     description: "converts a binary encoded string into its raw form",
+    authors: &["s-viour"],
+    category: "Data Format",
     arguments: &[],
     op: from_binary
 };
@@ -136,6 +154,8 @@ fn from_binary(_: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -
 pub static OPINFO_TOBINARY: OperationInfo = OperationInfo {
     name: "to-binary",
     description: "converts data into a binary-encoded string",
+    authors: &["s-viour"],
+    category: "Data Format",
     arguments: &[],
     op: to_binary,
 };
@@ -153,6 +173,8 @@ fn to_binary(_: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> 
 pub static OPINFO_FROMRADIX: OperationInfo = OperationInfo {
     name: "from-radix",
     description: "converts data in a given radix back into its raw form",
+    authors: &["s-viour"],
+    category: "Data Format",
     arguments: &[("radix", OperationArgType::Integer)],
     op: from_radix,
 };
@@ -171,6 +193,8 @@ fn from_radix(args: Option<&HashMap<String, OperationArg>>, dish: &mut DishData)
 pub static OPINFO_TORADIX: OperationInfo = OperationInfo {
     name: "to-radix",
     description: "converts data into an encoded string of a given radix",
+    authors: &["s-viour"],
+    category: "Data Format",
     arguments: &[("radix", OperationArgType::Integer)],
     op: to_radix,
 };
@@ -239,6 +263,8 @@ fn from_radix_helper(radix: u32, dish: &mut DishData) -> DishResult {
 pub static OPINFO_REGEXMATCH: OperationInfo = OperationInfo {
     name: "regex-match",
     description: "finds substrings that match regex",
+    authors: &["Egggggg"],
+    category: "Data Format",
     arguments: &[("pattern", OperationArgType::String)],
     op: regex_match,
 };
@@ -264,6 +290,8 @@ fn regex_match(args: Option<&HashMap<String, OperationArg>>, dish: &mut DishData
 pub static OPINFO_REGEXREPLACE: OperationInfo = OperationInfo {
     name: "regex-replace",
     description: "replaces substrings using regex groups",
+    authors: &["Egggggg"],
+    category: "Data Format",
     arguments: &[("pattern", OperationArgType::String), ("replacement", OperationArgType::String)],
     op: regex_replace,
 };

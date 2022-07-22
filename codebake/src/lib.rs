@@ -71,11 +71,24 @@ type Operation = fn(Option<&HashMap<String, OperationArg>>, &mut DishData) -> Di
 
 /// Entirely statically declared struct that holds all the information
 /// about an Operation required for embedding it in the lisp
+/// 
+/// Fields:
+///   * name        - name of the operation; must be named `lowercase-with-dashes`
+///   * description - short description of what the operation does to the dish
+///   * authors     - list of the authors who have contributed to the operation; feel free to
+///                   add yourself if you've worked on this operation, even if only a small change!
+///   * category    - category the operation belongs to; valid categories are:
+///                   `Textual`, `Data Format`
+///   * arguments   - list of 2-tuples where the first element is the name of the argument
+///                 and the second argument is the type of the argument
+///   * op          - function pointer to the operation itself
 ///
 #[derive(Clone)]
 pub struct OperationInfo {
     pub name: &'static str,
     pub description: &'static str,
+    pub authors: &'static [&'static str],
+    pub category: &'static str,
     pub arguments: &'static [(&'static str, OperationArgType)],
     pub op: Operation,
 }
