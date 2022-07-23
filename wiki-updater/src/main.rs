@@ -4,13 +4,19 @@ use std::{
     io::Write,
 };
 
-use codebake::ops::OPERATIONS as Operations;
+use codebake::{ops::OPERATIONS as Operations, OperationArgType};
 use serde::Serialize;
 use tinytemplate::TinyTemplate;
 
 const TEMPLATE: &str = "# { name }
 {{ for op in ops }}
 * **`{ op.name }`** - { op.description } [{ op.authors }]
+{{ if op.arguments }}
+  args:
+{{ for arg in op.arguments }}
+  * *`{ arg.name }`*: { arg.type_string }
+{{ endfor }}
+{{ endif }}
 {{ endfor }}";
 
 #[derive(Serialize, Clone)]
@@ -18,12 +24,19 @@ struct OperationData<'a> {
     name: &'a str,
     description: &'a str,
     authors: String,
+    arguments: Vec<ArgumentData<'a>>,
 }
 
 #[derive(Serialize)]
 struct CategoryData<'a> {
     name: &'a str,
     ops: Vec<OperationData<'a>>,
+}
+
+#[derive(Serialize, Clone)]
+struct ArgumentData<'a> {
+    name: &'a str,
+    type_string: &'a str,
 }
 
 fn main() {
@@ -35,10 +48,27 @@ fn main() {
 
     for op in Operations {
         let authors = op.authors.join(", ").to_string();
+        let mut arguments: Vec<ArgumentData> = Vec::new();
+
+        for (arg_name, arg_type) in op.arguments {
+            let type_string = match arg_type {
+                OperationArgType::Integer => "int",
+                OperationArgType::String => "string",
+            };
+
+            let arg = ArgumentData {
+                name: arg_name,
+                type_string,
+            };
+
+            arguments.push(arg);
+        }
+
         let op_data = OperationData {
             name: op.name,
             description: op.description,
             authors,
+            arguments,
         };
 
         match categories.entry(op.category) {
