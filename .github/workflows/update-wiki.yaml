@@ -1,0 +1,42 @@
+name: Update Wiki
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - /codebake/src/ops/**
+
+jobs:
+  Update-Wiki:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout codebake
+        uses: actions/checkout@v3
+        with:
+          path: main
+      - name: Checkout wiki
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ github.repository }}.wiki.git
+          path: wiki
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Update wiki
+        run: |
+          cd main
+          cargo run --bin updater
+          mv Operation-Reference.md ../wiki/Operation-Reference.md
+      - name: Configure git to push
+        run: |
+          cd ../wiki
+          git config --local user.email "wiki-action[bot]@users.noreply.github.com"
+          git config --local user.name "wiki-action[bot]"
+          git commit -m "Update Operation-Reference.md" -a
+      - name: Push update to wiki
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}.wiki.git
