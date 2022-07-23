@@ -1,5 +1,6 @@
 [workspace]
 members = [
     "codebake",
-    "web-interpreter"
+    "web-interpreter",
+	"wiki-updater"
 ]
