@@ -38,5 +38,5 @@ jobs:
       - name: Push update to wiki
         uses: ad-m/github-push-action@master
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.TOKEN }}
           repository: ${{ github.repository }}.wiki.git
