@@ -30,8 +30,8 @@ jobs:
           cargo run --bin updater
           mv Operation-Reference.md ../wiki/Operation-Reference.md
       - name: Configure git to push
+        working-directory: ./wiki
         run: |
-          cd ../wiki
           git config --local user.email "wiki-action[bot]@users.noreply.github.com"
           git config --local user.name "wiki-action[bot]"
           git commit -m "Update Operation-Reference.md" -a
