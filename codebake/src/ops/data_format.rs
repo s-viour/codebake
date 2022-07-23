@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 pub static OPINFO_FROMBASE64: OperationInfo = OperationInfo {
     name: "from-base64",
-    description: "converts from base64",
+    description: "converts from base64!",
     authors: &["s-viour"],
     category: "Data Format",
     arguments: &[],
