@@ -18,7 +18,7 @@ jobs:
       - name: Checkout wiki
         uses: actions/checkout@v3
         with:
-          repository: ${{ github.repository }}.wiki.git
+          repository: ${{ github.repository }}.wiki
           path: wiki
       - name: Install Rust
         uses: actions-rs/toolchain@v1
