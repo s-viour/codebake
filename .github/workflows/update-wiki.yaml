@@ -1,6 +1,11 @@
 name: Update Wiki
 
-on: [merge]
+on:
+  push:
+    branches:
+      - "main"
+    paths:
+      - "/codebake/src/ops/*"
 
 jobs:
   Update-Wiki:
