@@ -25,8 +25,8 @@ jobs:
         with:
           toolchain: stable
       - name: Update wiki
+        working-directory: ./main
         run: |
-          cd main
           cargo run --bin updater
           mv Operation-Reference.md ../wiki/Operation-Reference.md
       - name: Configure git to push
@@ -34,7 +34,8 @@ jobs:
         run: |
           git config --local user.email "wiki-action[bot]@users.noreply.github.com"
           git config --local user.name "wiki-action[bot]"
-          git commit -m "Update Operation-Reference.md" -a
+          git add .
+          git commit -m "Update Operation-Reference.md"
       - name: Push update to wiki
         uses: ad-m/github-push-action@master
         with:
