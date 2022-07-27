@@ -284,7 +284,10 @@ pub static OPINFO_REGEXMATCH: OperationInfo = OperationInfo {
 
 fn regex_match(args: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
     let pattern = args.unwrap().get("pattern").unwrap().string()?;
-    let re = Regex::new(&pattern).unwrap();
+    let re = match Regex::new(&pattern) {
+        Ok(r) => r,
+        Err(e) => return Err(DishError(format!("{}", e))),
+    };
     let mut out = Vec::new();
     let data = match dish {
         DishData::Str(s) => s,
@@ -315,7 +318,10 @@ pub static OPINFO_REGEXREPLACE: OperationInfo = OperationInfo {
 fn regex_replace(args: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
     let pattern = args.unwrap().get("pattern").unwrap().string()?;
     let replacement = args.unwrap().get("replacement").unwrap().string()?;
-    let re = Regex::new(&pattern).unwrap();
+    let re = match Regex::new(&pattern) {
+        Ok(r) => r,
+        Err(e) => return Err(DishError(format!("{}", e))),
+    };
     let data = match dish {
         DishData::Str(s) => s,
         DishData::Bin(_) => return Err(DishError("dish should be string, got binary".to_string())),
