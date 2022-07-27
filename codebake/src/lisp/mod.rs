@@ -20,8 +20,6 @@ use std::collections::HashMap;
 use std::fmt;
 use std::io::{self, Write};
 use std::rc::Rc;
-use regex::Regex;
-use lazy_static::lazy_static;
 
 pub type LispResult = std::result::Result<Expression, Error>;
 
