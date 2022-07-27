@@ -20,6 +20,8 @@ use std::collections::HashMap;
 use std::fmt;
 use std::io::{self, Write};
 use std::rc::Rc;
+use regex::Regex;
+use lazy_static::lazy_static;
 
 pub type LispResult = std::result::Result<Expression, Error>;
 
@@ -189,10 +191,12 @@ pub fn run_repl(env: Option<&mut Environment>) {
 
 fn check_parens(s: &String) -> bool {
     let mut count = 0;
+    let mut string_mode = false;
     for i in s.chars() {
         match i {
-            '(' => count += 1,
-            ')' => count -= 1,
+            '(' => if !string_mode { count += 1 },
+            ')' => if !string_mode { count -= 1 },
+            '\"' => string_mode = !string_mode,
             _ => {},
         }
         if count < 0 {
@@ -228,11 +232,12 @@ pub fn default_env<'a>() -> Environment<'a> {
     for oi in OPERATIONS {
         functions::embed_operation(oi, &mut env);
     }
-
+    
     for fxn in functions_nonnative::FUNCTIONS_NONNATIVE {
         parse_eval(fxn.to_string(), &mut env)
             .expect("non-native function failed to evaluate!");
     }
+    
 
     env
 }

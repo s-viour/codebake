@@ -21,16 +21,34 @@ pub fn tokenize(expr: String) -> Vec<String> {
         // kinda funny since we're building a cyberchef clone
         // *i used the stones to destroy the stones*
         static ref RE: Regex = Regex::new("((\"(.*?)\")|[a-zA-Z0-9!@#\\?$&()=\\-`.+,/\"]+|\\(|\\))").unwrap();
+        static ref RE_STR: Regex = Regex::new("(\"(.*)\")").unwrap();
     }
-
-    let spread = expr.replace('(', " ( ").replace(')', " ) ");
 
     // we use a regex here so we can keep strings with spaces in them
     // as one token. so "blah blah blah" gets tokenized as ["blah blah blah"]
     // and not ["blah, blah, blah"]
-    RE.find_iter(spread.as_str())
+    let intermediate: String = RE.find_iter(expr.as_str())
         .map(|x| x.as_str().to_string())
-        .collect()
+        // hehe this is a hack ^-^
+        // this code USED to apply this replacement to every token
+        // now, we selectively apply it to only tokens that don't contain a double-quote character
+        // this leaves strings 100% intact
+        // before, "(" would have been turned into " ( "
+        .map(|x| {
+            if !x.contains('\"') {
+                x.replace('(', " ( ").replace(')', " ) ")
+            } else {
+                x
+            }
+        })
+        .collect::<Vec<String>>()
+        .join(" ");
+
+    let ret = RE.find_iter(intermediate.as_str())
+        .map(|x| x.as_str().to_string())
+        .collect();
+
+    ret
 }
 
 pub fn read_seq(tokens: &[String]) -> Result<(Expression, &[String]), Error> {
