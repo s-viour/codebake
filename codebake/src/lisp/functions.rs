@@ -7,9 +7,8 @@
 //!
 
 use crate::lisp::{Environment, Error, Expression, LispResult};
-use crate::{Dish, OperationArg, OperationArgType, OperationInfo};
+use crate::{EMPTY_ARGS, Dish, OperationArguments, OperationArg, OperationArgType, OperationInfo};
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::rc::Rc;
 
 pub fn embed_operation(oi: &'static OperationInfo, env: &mut Environment) {
@@ -22,7 +21,7 @@ pub fn embed_operation(oi: &'static OperationInfo, env: &mut Environment) {
                     return Err(Error("expected an argument".to_string()));
                 }
                 if let Expression::Dish(dish) = &args[0] {
-                    dish.borrow_mut().apply(oi.op, None);
+                    dish.borrow_mut().apply(oi.op, &EMPTY_ARGS);
                     Ok(Expression::Dish(dish.clone()))
                 } else {
                     Err(Error("must be dish".to_string()))
@@ -43,7 +42,7 @@ pub fn embed_operation(oi: &'static OperationInfo, env: &mut Environment) {
                     return Err(Error("expected an argument".to_string()));
                 }
                 if let Expression::Dish(dish) = &args[0] {
-                    dish.borrow_mut().apply(oi.op, Some(&hargs));
+                    dish.borrow_mut().apply(oi.op, &hargs);
                     Ok(Expression::Dish(dish.clone()))
                 } else {
                     Err(Error("must be dish".to_string()))
@@ -61,24 +60,24 @@ fn parse_arg(typ: &OperationArgType, expr: &Expression) -> Result<OperationArg, 
             } else {
                 Err(Error("expected integer".to_string()))
             }
-        }
+        },
         OperationArgType::String => {
             Ok(OperationArg::String(expr.to_string()))
-        }
+        },
     }
 }
 
 fn parse_args(
     oi: &OperationInfo,
     exprs: &[Expression],
-) -> Result<HashMap<String, OperationArg>, Error> {
+) -> Result<OperationArguments, Error> {
     if oi.arguments.len() != exprs.len() {
         return Err(Error("incorrect number of arguments".to_string()));
     }
-    let mut ret: HashMap<String, OperationArg> = HashMap::new();
+    let mut ret: OperationArguments = OperationArguments::new();
 
     for ((name, typ), expr) in oi.arguments.iter().zip(exprs) {
-        ret.insert(name.to_string(), parse_arg(typ, expr)?);
+        ret.insert(name, parse_arg(typ, expr)?);
     }
 
     Ok(ret)

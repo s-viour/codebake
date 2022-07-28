@@ -1,5 +1,4 @@
-use crate::{DishData, DishResult, OperationArg, OperationArgType, OperationInfo};
-use std::collections::HashMap;
+use crate::{DishData, DishResult, OperationArguments, OperationArgType, OperationInfo};
 
 
 fn rot13_helper_bin(n: i64, s: &mut [u8]) {
@@ -30,8 +29,8 @@ pub static OPINFO_ROT13: OperationInfo = OperationInfo {
     op: rot13,
 };
 
-fn rot13(args: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
-    let n = args.unwrap().get("n").unwrap().integer()?;
+fn rot13(args: &OperationArguments, dish: &mut DishData) -> DishResult {
+    let n = args.get_integer("n")?;
     match dish {
         DishData::Str(s) => {
             rot13_helper_str(n, s);
@@ -53,7 +52,7 @@ pub static OPINFO_REVERSE: OperationInfo = OperationInfo {
     op: reverse,
 };
 
-fn reverse(_: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
+fn reverse(_: &OperationArguments, dish: &mut DishData) -> DishResult {
     match dish {
         DishData::Str(d) => {
             *dish = DishData::Str(d.chars().rev().collect());
