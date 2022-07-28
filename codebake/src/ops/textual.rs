@@ -1,5 +1,4 @@
-use crate::{DishData, DishResult, OperationArguments, OperationArgType, OperationInfo};
-
+use crate::{DishData, DishResult, OperationArgType, OperationArguments, OperationInfo};
 
 fn rot13_helper_bin(n: i64, s: &mut [u8]) {
     s.iter_mut().for_each(|c| {

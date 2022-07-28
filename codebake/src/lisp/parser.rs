@@ -27,7 +27,8 @@ pub fn tokenize(expr: String) -> Vec<String> {
     // we use a regex here so we can keep strings with spaces in them
     // as one token. so "blah blah blah" gets tokenized as ["blah blah blah"]
     // and not ["blah, blah, blah"]
-    let intermediate: String = RE.find_iter(expr.as_str())
+    let intermediate: String = RE
+        .find_iter(expr.as_str())
         .map(|x| x.as_str().to_string())
         // hehe this is a hack ^-^
         // this code USED to apply this replacement to every token
@@ -44,7 +45,8 @@ pub fn tokenize(expr: String) -> Vec<String> {
         .collect::<Vec<String>>()
         .join(" ");
 
-    let ret = RE.find_iter(intermediate.as_str())
+    let ret = RE
+        .find_iter(intermediate.as_str())
         .map(|x| x.as_str().to_string())
         .collect();
 

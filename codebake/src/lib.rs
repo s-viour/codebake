@@ -18,8 +18,8 @@ use std::fmt;
 use std::result;
 
 /// Constant for an empty OperationArguments (i.e the inner field is None)
-/// 
-pub static EMPTY_ARGS: OperationArguments = OperationArguments { inner: None, };
+///
+pub static EMPTY_ARGS: OperationArguments = OperationArguments { inner: None };
 
 /// An error that occurred while performing an operation
 /// on some DishData. This is the `E` type in `codebake::Result`.
@@ -76,7 +76,7 @@ type Operation = fn(&OperationArguments, &mut DishData) -> DishResult;
 
 /// Entirely statically declared struct that holds all the information
 /// about an Operation required for embedding it in the lisp
-/// 
+///
 /// Fields:
 ///   * name        - name of the operation; must be named `lowercase-with-dashes`
 ///   * description - short description of what the operation does to the dish
@@ -100,9 +100,9 @@ pub struct OperationInfo {
 
 /// Storage container for arguments to operations, guaranteed to be valid
 /// (i.e containing all required arguments) when passed as an argument to an Operation
-/// 
+///
 /// Essentially acts as an Option<&HashMap<String, OperationArg>>
-/// 
+///
 pub struct OperationArguments {
     inner: Option<HashMap<String, OperationArg>>,
 }
@@ -135,11 +135,7 @@ impl Dish {
     /// Takes a function of type `DishData -> DishResult` (AKA an operation)
     /// and consumes `self`, producing a new `Dish` with the
     /// operation applied.
-    pub fn apply(
-        &mut self,
-        op: Operation,
-        args: &OperationArguments,
-    ) -> &mut Dish {
+    pub fn apply(&mut self, op: Operation, args: &OperationArguments) -> &mut Dish {
         if let Dish::Success(data) = self {
             let op = op;
             let v = op(args, data);
@@ -177,34 +173,38 @@ impl OperationArguments {
     }
 
     /// Get an integer out of the OperationArguments by-name
-    /// 
+    ///
     pub fn get_integer(&self, name: &str) -> Result<i64, DishError> {
         match &self.inner {
             None => return Err(DishError("empty arguments".to_string())),
             Some(h) => match h.get(name) {
                 None => Err(DishError("no such argument".to_string())),
-                Some(arg) => if let OperationArg::Integer(i) = arg {
-                    Ok(*i)
-                } else {
-                    Err(DishError("wrong argument type".to_string()))
+                Some(arg) => {
+                    if let OperationArg::Integer(i) = arg {
+                        Ok(*i)
+                    } else {
+                        Err(DishError("wrong argument type".to_string()))
+                    }
                 }
-            }
+            },
         }
     }
 
     /// Get a string out of the OperationArguments by name
-    /// 
+    ///
     pub fn get_string(&self, name: &str) -> Result<String, DishError> {
         match &self.inner {
             None => return Err(DishError("empty arguments".to_string())),
             Some(h) => match h.get(name) {
                 None => Err(DishError("no such argument".to_string())),
-                Some(arg) => if let OperationArg::String(s) = arg {
-                    Ok(s.clone())
-                } else {
-                    Err(DishError("wrong argument type".to_string()))
+                Some(arg) => {
+                    if let OperationArg::String(s) = arg {
+                        Ok(s.clone())
+                    } else {
+                        Err(DishError("wrong argument type".to_string()))
+                    }
                 }
-            }
+            },
         }
     }
 }

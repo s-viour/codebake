@@ -1,4 +1,7 @@
-use crate::{EMPTY_ARGS, DishData, DishError, DishResult, OperationArguments, OperationArgType, OperationInfo};
+use crate::{
+    DishData, DishError, DishResult, OperationArgType, OperationArguments, OperationInfo,
+    EMPTY_ARGS,
+};
 use base64;
 use regex::Regex;
 
@@ -334,7 +337,7 @@ fn regex_replace(args: &OperationArguments, dish: &mut DishData) -> DishResult {
 #[cfg(test)]
 mod tests {
     use crate::ops::data_format::*;
-    use crate::{EMPTY_ARGS, DishData};
+    use crate::{DishData, EMPTY_ARGS};
 
     #[test]
     fn test_to_octal() {

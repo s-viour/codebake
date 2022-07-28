@@ -1,6 +1,6 @@
+use codebake::lisp;
 use web_sys::HtmlTextAreaElement;
 use yew::prelude::*;
-use codebake::lisp;
 
 struct App {
     env: lisp::Environment<'static>,
@@ -23,14 +23,18 @@ impl Component for App {
             output: String::new(),
         }
     }
-    
+
     fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Self::Message::Run => {
-                let input: String = self.text_input.cast::<HtmlTextAreaElement>().unwrap().value();
+                let input: String = self
+                    .text_input
+                    .cast::<HtmlTextAreaElement>()
+                    .unwrap()
+                    .value();
                 let split = get_expressions(&input);
                 log::debug!("running script {}", input);
-                
+
                 for expr in split {
                     if expr == "" {
                         continue;
@@ -51,7 +55,7 @@ impl Component for App {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let onclick = ctx.link().callback(|_: MouseEvent| { Msg::Run });
+        let onclick = ctx.link().callback(|_: MouseEvent| Msg::Run);
 
         html! {
             <div id="app">
@@ -76,7 +80,7 @@ fn main() {
 }
 
 /// helper function to get a vector of the expressions in a string
-/// 
+///
 fn get_expressions(s: &str) -> Vec<String> {
     let mut count = 0;
     let mut last = 0;
@@ -91,7 +95,7 @@ fn get_expressions(s: &str) -> Vec<String> {
         }
 
         if count == 0 {
-            let slice = &new_s[last..i+1];
+            let slice = &new_s[last..i + 1];
             exprs.push(slice.to_string());
             last = i;
         }

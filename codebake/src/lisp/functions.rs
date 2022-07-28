@@ -7,7 +7,7 @@
 //!
 
 use crate::lisp::{Environment, Error, Expression, LispResult};
-use crate::{EMPTY_ARGS, Dish, OperationArguments, OperationArg, OperationArgType, OperationInfo};
+use crate::{Dish, OperationArg, OperationArgType, OperationArguments, OperationInfo, EMPTY_ARGS};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -15,8 +15,9 @@ pub fn embed_operation(oi: &'static OperationInfo, env: &mut Environment) {
     // if the operation has no arguments, don't add the argument parsing
     // wrapper closure. just embed it raw
     if oi.arguments.len() == 0 {
-        env.data.insert(oi.name.to_string(), Expression::Func(Rc::new(
-            move |args: &[Expression]| -> LispResult {
+        env.data.insert(
+            oi.name.to_string(),
+            Expression::Func(Rc::new(move |args: &[Expression]| -> LispResult {
                 if args.len() != 1 {
                     return Err(Error("expected an argument".to_string()));
                 }
@@ -26,30 +27,31 @@ pub fn embed_operation(oi: &'static OperationInfo, env: &mut Environment) {
                 } else {
                     Err(Error("must be dish".to_string()))
                 }
-            },
-        )));
+            })),
+        );
         return;
     }
-    
+
     // otherwise, INCLUDE the wrapper closure that parses args
     env.data.insert(
         oi.name.to_string(),
         Expression::Func(Rc::new(move |args: &[Expression]| -> LispResult {
-        let hargs = parse_args(oi, args)?;
-        Ok(Expression::Func(Rc::new(
-            move |args: &[Expression]| -> LispResult {
-                if args.len() != 1 {
-                    return Err(Error("expected an argument".to_string()));
-                }
-                if let Expression::Dish(dish) = &args[0] {
-                    dish.borrow_mut().apply(oi.op, &hargs);
-                    Ok(Expression::Dish(dish.clone()))
-                } else {
-                    Err(Error("must be dish".to_string()))
-                }
-            },
-        )))
-    })));
+            let hargs = parse_args(oi, args)?;
+            Ok(Expression::Func(Rc::new(
+                move |args: &[Expression]| -> LispResult {
+                    if args.len() != 1 {
+                        return Err(Error("expected an argument".to_string()));
+                    }
+                    if let Expression::Dish(dish) = &args[0] {
+                        dish.borrow_mut().apply(oi.op, &hargs);
+                        Ok(Expression::Dish(dish.clone()))
+                    } else {
+                        Err(Error("must be dish".to_string()))
+                    }
+                },
+            )))
+        })),
+    );
 }
 
 fn parse_arg(typ: &OperationArgType, expr: &Expression) -> Result<OperationArg, Error> {
@@ -60,17 +62,12 @@ fn parse_arg(typ: &OperationArgType, expr: &Expression) -> Result<OperationArg, 
             } else {
                 Err(Error("expected integer".to_string()))
             }
-        },
-        OperationArgType::String => {
-            Ok(OperationArg::String(expr.to_string()))
-        },
+        }
+        OperationArgType::String => Ok(OperationArg::String(expr.to_string())),
     }
 }
 
-fn parse_args(
-    oi: &OperationInfo,
-    exprs: &[Expression],
-) -> Result<OperationArguments, Error> {
+fn parse_args(oi: &OperationInfo, exprs: &[Expression]) -> Result<OperationArguments, Error> {
     if oi.arguments.len() != exprs.len() {
         return Err(Error("incorrect number of arguments".to_string()));
     }
@@ -114,9 +111,13 @@ pub fn lisp_apply() -> Expression {
         match &args[0] {
             Expression::Func(f) => match &args[1] {
                 Expression::List(l) => f(l),
-                _ => Err(Error("second argument to `apply` must be a list".to_string())),
-            }
-            _ => Err(Error("first argument to `apply` must be a function".to_string())),
+                _ => Err(Error(
+                    "second argument to `apply` must be a list".to_string(),
+                )),
+            },
+            _ => Err(Error(
+                "first argument to `apply` must be a function".to_string(),
+            )),
         }
     }))
 }
@@ -131,10 +132,8 @@ pub fn lisp_head() -> Expression {
                 if v.len() == 0 {
                     return Ok(Expression::Symbol("nil".to_string()));
                 }
-                Ok(v.get(0)
-                    .map(|x| x.clone())
-                    .unwrap())
-            },
+                Ok(v.get(0).map(|x| x.clone()).unwrap())
+            }
             _ => Err(Error("expected list".to_string())),
         }
     }))
@@ -146,11 +145,10 @@ pub fn lisp_last() -> Expression {
             return Err(Error("incorrect number of arguments".to_string()));
         }
         match &args[0] {
-            Expression::List(v) => {
-                v.get(v.len() - 1)
-                    .ok_or_else(|| Error("empty list".to_string()))
-                    .map(|x| x.clone())
-            },
+            Expression::List(v) => v
+                .get(v.len() - 1)
+                .ok_or_else(|| Error("empty list".to_string()))
+                .map(|x| x.clone()),
             _ => Err(Error("expected list".to_string())),
         }
     }))
@@ -166,9 +164,9 @@ pub fn lisp_rest() -> Expression {
                 let mut iter = v.iter();
                 iter.next();
                 Ok(Expression::List(
-                    iter.map(|x| x.clone()).collect::<Vec<Expression>>()
+                    iter.map(|x| x.clone()).collect::<Vec<Expression>>(),
                 ))
-            },
+            }
             _ => Err(Error("expected list".to_string())),
         }
     }))
@@ -180,11 +178,12 @@ pub fn lisp_init() -> Expression {
             return Err(Error("incorrect number of arguments".to_string()));
         }
         match &args[0] {
-            Expression::List(v) => {
-                Ok(Expression::List(
-                    v.iter().take(v.len() - 1).map(|x| x.clone()).collect::<Vec<Expression>>()
-                ))
-            },
+            Expression::List(v) => Ok(Expression::List(
+                v.iter()
+                    .take(v.len() - 1)
+                    .map(|x| x.clone())
+                    .collect::<Vec<Expression>>(),
+            )),
             _ => Err(Error("expected list".to_string())),
         }
     }))
@@ -229,7 +228,7 @@ pub fn lisp_bake() -> Expression {
         if args.len() != 2 {
             return Err(Error("`bake` takes 2 arguments".to_string()));
         }
-        
+
         let recipe = match &args[0] {
             Expression::List(v) => Ok(v),
             _ => Err(Error("expected list".to_string())),
@@ -237,24 +236,20 @@ pub fn lisp_bake() -> Expression {
 
         match &args[1] {
             Expression::Dish(_) => Ok(()),
-            _ => Err(Error("expected Dish".to_string()))
+            _ => Err(Error("expected Dish".to_string())),
         }?;
 
         // i cannot believe it inferred the type of the Vec here
         let mut funcs = Vec::new();
         for expr in recipe {
             match expr {
-                Expression::Func(f) => {
-                    funcs.push(f.clone())
-                },
-                _ => {
-                    return Err(Error("recipe must be list of functions".to_string()))
-                }
+                Expression::Func(f) => funcs.push(f.clone()),
+                _ => return Err(Error("recipe must be list of functions".to_string())),
             }
         }
 
         for func in funcs {
-            func(&[args[1].clone()])?;  
+            func(&[args[1].clone()])?;
         }
 
         Ok(args[1].clone())
@@ -272,15 +267,11 @@ pub fn lisp_empty() -> Expression {
         Ok(match &args[0] {
             Expression::List(v) => Expression::Bool(v.is_empty()),
             Expression::String(s) => Expression::Bool(s.is_empty()),
-            Expression::Dish(d) => {
-                match &*d.borrow() {
-                    Dish::Success(data) => {
-                        Expression::Bool(data.as_bytes().len() == 0)
-                    },
-                    _ => Expression::Bool(false)
-                }
+            Expression::Dish(d) => match &*d.borrow() {
+                Dish::Success(data) => Expression::Bool(data.as_bytes().len() == 0),
+                _ => Expression::Bool(false),
             },
-            _ => nil
+            _ => nil,
         })
     }))
 }
@@ -303,7 +294,10 @@ pub fn lisp_cons() -> Expression {
 pub fn lisp_eq() -> Expression {
     Expression::Func(Rc::new(|args: &[Expression]| -> LispResult {
         if args.len() < 1 {
-            return Err(Error(format!("expected at least 1 argument, got {}", args.len())));
+            return Err(Error(format!(
+                "expected at least 1 argument, got {}",
+                args.len()
+            )));
         }
 
         let mut iter = args.iter();
