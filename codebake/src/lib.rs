@@ -24,7 +24,7 @@ pub static EMPTY_ARGS: OperationArguments = OperationArguments { inner: None };
 /// An error that occurred while performing an operation
 /// on some DishData. This is the `E` type in `codebake::Result`.
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct DishError(String);
 
 /// DishData represents both the type of data and
@@ -36,7 +36,7 @@ pub struct DishError(String);
 /// Str represents textual (unicode or ascii) data
 /// Bin represents generic binary data
 ///
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub enum DishData {
     Str(String),
     Bin(Vec<u8>),
@@ -48,7 +48,7 @@ pub enum DishData {
 ///
 /// `Dish::apply` is the core function for operating on dishes.
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Dish {
     Success(DishData),
     Failure(DishError),

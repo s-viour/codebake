@@ -141,7 +141,7 @@ fn to_hex(_: &OperationArguments, dish: &mut DishData) -> DishResult {
     *dish = DishData::Str(
         dish.as_bytes()
             .iter()
-            .map(|x| format!("{:x}", x))
+            .map(|x| format!("{:02x}", x))
             .collect::<Vec<String>>()
             .join(" "),
     );
@@ -175,7 +175,7 @@ fn to_binary(_: &OperationArguments, dish: &mut DishData) -> DishResult {
     *dish = DishData::Str(
         dish.as_bytes()
             .iter()
-            .map(|x| format!("{:b}", x))
+            .map(|x| format!("{:08b}", x))
             .collect::<Vec<String>>()
             .join(" "),
     );
@@ -344,15 +344,15 @@ mod tests {
         let mut data = DishData::Bin(vec![42]);
         let _expected = DishData::Str(String::from("52"));
         assert!(matches!(to_octal(&EMPTY_ARGS, &mut data), Ok(())));
-        assert!(matches!(data, _expected));
+        assert_eq!(data, _expected);
     }
 
     #[test]
     fn test_from_octal() {
-        let mut data = DishData::Str("52".to_string());
-        let _expected = DishData::Bin(vec![42]);
+        let mut data = DishData::Str("150 145 154 154 157 40 167 157 162 154 144 41".to_string());
+        let _expected = DishData::Str("hello world!".to_string());
         assert!(matches!(from_octal(&EMPTY_ARGS, &mut data), Ok(())));
-        assert!(matches!(data, _expected));
+        assert_eq!(data, _expected);
     }
 
     #[test]
@@ -360,44 +360,44 @@ mod tests {
         let mut data = DishData::Bin(vec![15]);
         let _expected = DishData::Str(String::from("0f"));
         assert!(matches!(to_hex(&EMPTY_ARGS, &mut data), Ok(())));
-        assert!(matches!(data, _expected));
+        assert_eq!(data, _expected);
 
         let mut data = DishData::Bin(vec![26]);
         let _expected = DishData::Str(String::from("1a"));
         assert!(matches!(to_hex(&EMPTY_ARGS, &mut data), Ok(())));
-        assert!(matches!(data, _expected));
+        assert_eq!(data, _expected);
     }
 
     #[test]
     fn test_from_hex() {
         let mut data = DishData::Str(String::from("0f"));
-        let _expected = DishData::Bin(vec![15]);
+        let _expected = DishData::Str("\u{f}".to_string());
 
         assert!(matches!(from_hex(&EMPTY_ARGS, &mut data), Ok(())));
-        assert!(matches!(data, _expected));
+        assert_eq!(data, _expected);
 
         let mut data = DishData::Str(String::from("1a"));
-        let _expected = DishData::Bin(vec![26]);
+        let _expected = DishData::Str("\u{1a}".to_string());
         assert!(matches!(from_hex(&EMPTY_ARGS, &mut data), Ok(())));
-        assert!(matches!(data, _expected));
+        assert_eq!(data, _expected);
     }
 
     #[test]
     fn test_from_binary() {
         let mut data = DishData::Str("01101000 01100101 01101100 01101100 01101111".to_string());
-        let _expected = DishData::Bin("hello".as_bytes().to_vec());
+        let _expected = DishData::Str("hello".to_string());
 
         assert!(matches!(from_binary(&EMPTY_ARGS, &mut data), Ok(())));
-        assert!(matches!(data, _expected));
+        assert_eq!(data, _expected);
     }
 
     #[test]
     fn test_to_binary() {
-        let mut data = DishData::Str("hello".to_string());
-        let _expected = DishData::Str("01101000 01100101 01101100 01101100 01101111".to_string());
+        let mut data = DishData::Str("hello world!".to_string());
+        let _expected = DishData::Str("01101000 01100101 01101100 01101100 01101111 00100000 01110111 01101111 01110010 01101100 01100100 00100001".to_string());
 
         assert!(matches!(to_binary(&EMPTY_ARGS, &mut data), Ok(())));
-        assert!(matches!(data, _expected));
+        assert_eq!(data, _expected);
     }
 
     #[test]
@@ -406,7 +406,7 @@ mod tests {
         let _expected = DishData::Str("hello world!".to_string());
 
         assert!(matches!(from_decimal(&EMPTY_ARGS, &mut data), Ok(())));
-        assert!(matches!(data, _expected));
+        assert_eq!(data, _expected);
     }
 
     #[test]
@@ -415,6 +415,6 @@ mod tests {
         let _expected = DishData::Str("104 101 108 108 111 32 119 111 114 108 100 33".to_string());
 
         assert!(matches!(to_decimal(&EMPTY_ARGS, &mut data), Ok(())));
-        assert!(matches!(data, _expected));
+        assert_eq!(data, _expected);
     }
 }

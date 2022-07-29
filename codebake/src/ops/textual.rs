@@ -85,8 +85,8 @@ mod tests {
             DishData::Str("jklmnopqrstuvwxyzabcdefghiJKLMNOPQRSTUVWXYZABCDEFGHI".to_string()),
             DishData::Str("klmnopqrstuvwxyzabcdefghijKLMNOPQRSTUVWXYZABCDEFGHIJ".to_string()),
             DishData::Str("lmnopqrstuvwxyzabcdefghijkLMNOPQRSTUVWXYZABCDEFGHIJK".to_string()),
-            DishData::Str("nopqrstuvwxyzabcdefghijklmNOPQRSTUVWXYZABCDEFGHIJKLM".to_string()),
-            DishData::Str("mnopqrstuvwxyzabcdefghijklMNOPQRSTUVWXYZABCDEFGHIJKL".to_string())
+            DishData::Str("mnopqrstuvwxyzabcdefghijklMNOPQRSTUVWXYZABCDEFGHIJKL".to_string()),
+            DishData::Str("nopqrstuvwxyzabcdefghijklmNOPQRSTUVWXYZABCDEFGHIJKLM".to_string())
         ];
 
         for (i, _exp) in _expected.iter().enumerate() {
@@ -94,7 +94,7 @@ mod tests {
             let mut data = DishData::Str(ALPHABET.to_string());
             args.insert("n", (i + 1) as i64);
             assert!(matches!(rot13(&args, &mut data), Ok(())));
-            assert!(matches!(data, _exp));
+            assert_eq!(&data, _exp);
         }
     }
 
@@ -103,6 +103,6 @@ mod tests {
         let mut data = DishData::Str(ALPHABET.to_string());
         let _expected = DishData::Str("ZYXWVUTSRQPONMLKJIHGFEDCBAzyxwvutsrqponmlkjihgfedcba".to_string());
         assert!(matches!(reverse(&EMPTY_ARGS, &mut data), Ok(())));
-        assert!(matches!(data, _exp));
+        assert_eq!(data, _expected);
     }
 }
