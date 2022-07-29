@@ -399,4 +399,22 @@ mod tests {
         assert!(matches!(to_binary(&EMPTY_ARGS, &mut data), Ok(())));
         assert!(matches!(data, _expected));
     }
+
+    #[test]
+    fn test_from_decimal() {
+        let mut data = DishData::Str("104 101 108 108 111 32 119 111 114 108 100 33".to_string());
+        let _expected = DishData::Str("hello world!".to_string());
+
+        assert!(matches!(from_decimal(&EMPTY_ARGS, &mut data), Ok(())));
+        assert!(matches!(data, _expected));
+    }
+
+    #[test]
+    fn test_to_decimal() {
+        let mut data = DishData::Str("hello world!".to_string());
+        let _expected = DishData::Str("104 101 108 108 111 32 119 111 114 108 100 33".to_string());
+
+        assert!(matches!(to_decimal(&EMPTY_ARGS, &mut data), Ok(())));
+        assert!(matches!(data, _expected));
+    }
 }
