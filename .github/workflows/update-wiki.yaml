@@ -37,7 +37,6 @@ jobs:
           git config --local user.email "wiki-action[bot]@users.noreply.github.com"
           git config --local user.name "wiki-action[bot]"
           git add Operation-Reference.md
-          git commit -m "Update Operation-Reference.md"
           chmod +x push
           ./push
           
