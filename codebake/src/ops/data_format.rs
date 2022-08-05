@@ -1,7 +1,9 @@
-use crate::{DishData, DishError, DishResult, OperationArg, OperationArgType, OperationInfo};
+use crate::{
+    DishData, DishError, DishResult, OperationArgType, OperationArguments, OperationInfo,
+    EMPTY_ARGS,
+};
 use base64;
 use regex::Regex;
-use std::collections::HashMap;
 
 pub static OPINFO_FROMBASE64: OperationInfo = OperationInfo {
     name: "from-base64",
@@ -12,7 +14,7 @@ pub static OPINFO_FROMBASE64: OperationInfo = OperationInfo {
     op: from_base64,
 };
 
-fn from_base64(_: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
+fn from_base64(_: &OperationArguments, dish: &mut DishData) -> DishResult {
     let data = match dish {
         DishData::Str(s) => s.as_bytes(),
         DishData::Bin(_) => {
@@ -40,7 +42,7 @@ pub static OPINFO_TOBASE64: OperationInfo = OperationInfo {
     op: to_base64,
 };
 
-fn to_base64(_: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
+fn to_base64(_: &OperationArguments, dish: &mut DishData) -> DishResult {
     *dish = DishData::Str(base64::encode(dish.as_bytes()));
     Ok(())
 }
@@ -54,7 +56,7 @@ pub static OPINFO_FROMDECIMAL: OperationInfo = OperationInfo {
     op: from_decimal,
 };
 
-fn from_decimal(_: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
+fn from_decimal(_: &OperationArguments, dish: &mut DishData) -> DishResult {
     from_radix_helper(10, dish)
 }
 
@@ -67,7 +69,7 @@ pub static OPINFO_TODECIMAL: OperationInfo = OperationInfo {
     op: to_decimal,
 };
 
-fn to_decimal(_: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
+fn to_decimal(_: &OperationArguments, dish: &mut DishData) -> DishResult {
     *dish = DishData::Str(
         dish.as_bytes()
             .iter()
@@ -88,7 +90,7 @@ pub static OPINFO_FROMOCTAL: OperationInfo = OperationInfo {
     op: from_octal,
 };
 
-fn from_octal(_: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
+fn from_octal(_: &OperationArguments, dish: &mut DishData) -> DishResult {
     from_radix_helper(8, dish)
 }
 
@@ -101,7 +103,7 @@ pub static OPINFO_TOOCTAL: OperationInfo = OperationInfo {
     op: to_octal,
 };
 
-fn to_octal(_: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
+fn to_octal(_: &OperationArguments, dish: &mut DishData) -> DishResult {
     *dish = DishData::Str(
         dish.as_bytes()
             .iter()
@@ -122,7 +124,7 @@ pub static OPINFO_FROMHEX: OperationInfo = OperationInfo {
     op: from_hex,
 };
 
-fn from_hex(_: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
+fn from_hex(_: &OperationArguments, dish: &mut DishData) -> DishResult {
     from_radix_helper(16, dish)
 }
 
@@ -135,11 +137,11 @@ pub static OPINFO_TOHEX: OperationInfo = OperationInfo {
     op: to_hex,
 };
 
-fn to_hex(_: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
+fn to_hex(_: &OperationArguments, dish: &mut DishData) -> DishResult {
     *dish = DishData::Str(
         dish.as_bytes()
             .iter()
-            .map(|x| format!("{:x}", x))
+            .map(|x| format!("{:02x}", x))
             .collect::<Vec<String>>()
             .join(" "),
     );
@@ -156,7 +158,7 @@ pub static OPINFO_FROMBINARY: OperationInfo = OperationInfo {
     op: from_binary,
 };
 
-fn from_binary(_: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
+fn from_binary(_: &OperationArguments, dish: &mut DishData) -> DishResult {
     from_radix_helper(2, dish)
 }
 
@@ -169,11 +171,11 @@ pub static OPINFO_TOBINARY: OperationInfo = OperationInfo {
     op: to_binary,
 };
 
-fn to_binary(_: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
+fn to_binary(_: &OperationArguments, dish: &mut DishData) -> DishResult {
     *dish = DishData::Str(
         dish.as_bytes()
             .iter()
-            .map(|x| format!("{:b}", x))
+            .map(|x| format!("{:08b}", x))
             .collect::<Vec<String>>()
             .join(" "),
     );
@@ -190,8 +192,8 @@ pub static OPINFO_FROMRADIX: OperationInfo = OperationInfo {
     op: from_radix,
 };
 
-fn from_radix(args: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
-    let radix_res = args.unwrap().get("radix").unwrap().integer()?.try_into();
+fn from_radix(args: &OperationArguments, dish: &mut DishData) -> DishResult {
+    let radix_res = args.get_integer("radix")?.try_into();
 
     match radix_res {
         Ok(r) => from_radix_helper(r, dish),
@@ -208,9 +210,9 @@ pub static OPINFO_TORADIX: OperationInfo = OperationInfo {
     op: to_radix,
 };
 
-fn to_radix(args: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
+fn to_radix(args: &OperationArguments, dish: &mut DishData) -> DishResult {
     // explicitly annotate the result here so we get a u32
-    let radix_res = args.unwrap().get("radix").unwrap().integer()?.try_into();
+    let radix_res = args.get_integer("radix")?.try_into();
 
     match radix_res {
         Ok(r) => {
@@ -221,11 +223,11 @@ fn to_radix(args: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -
 
             match r {
                 // delegate to other functions if it's a specific radix
-                2 => to_binary(None, dish),
-                8 => to_octal(None, dish),
-                10 => to_decimal(None, dish),
-                16 => to_hex(None, dish),
-                64 => to_base64(None, dish),
+                2 => to_binary(&EMPTY_ARGS, dish),
+                8 => to_octal(&EMPTY_ARGS, dish),
+                10 => to_decimal(&EMPTY_ARGS, dish),
+                16 => to_hex(&EMPTY_ARGS, dish),
+                64 => to_base64(&EMPTY_ARGS, dish),
                 // otherwise use radix_fmt
                 _ => {
                     *dish = DishData::Str(
@@ -282,9 +284,12 @@ pub static OPINFO_REGEXMATCH: OperationInfo = OperationInfo {
     op: regex_match,
 };
 
-fn regex_match(args: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
-    let pattern = args.unwrap().get("pattern").unwrap().string()?;
-    let re = Regex::new(&pattern).unwrap();
+fn regex_match(args: &OperationArguments, dish: &mut DishData) -> DishResult {
+    let pattern = args.get_string("pattern")?;
+    let re = match Regex::new(&pattern) {
+        Ok(r) => r,
+        Err(e) => return Err(DishError(format!("{}", e))),
+    };
     let mut out = Vec::new();
     let data = match dish {
         DishData::Str(s) => s,
@@ -312,10 +317,13 @@ pub static OPINFO_REGEXREPLACE: OperationInfo = OperationInfo {
     op: regex_replace,
 };
 
-fn regex_replace(args: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
-    let pattern = args.unwrap().get("pattern").unwrap().string()?;
-    let replacement = args.unwrap().get("replacement").unwrap().string()?;
-    let re = Regex::new(&pattern).unwrap();
+fn regex_replace(args: &OperationArguments, dish: &mut DishData) -> DishResult {
+    let pattern = args.get_string("pattern")?;
+    let replacement = args.get_string("replacement")?;
+    let re = match Regex::new(&pattern) {
+        Ok(r) => r,
+        Err(e) => return Err(DishError(format!("{}", e))),
+    };
     let data = match dish {
         DishData::Str(s) => s,
         DishData::Bin(_) => return Err(DishError("dish should be string, got binary".to_string())),
@@ -329,66 +337,84 @@ fn regex_replace(args: Option<&HashMap<String, OperationArg>>, dish: &mut DishDa
 #[cfg(test)]
 mod tests {
     use crate::ops::data_format::*;
-    use crate::DishData;
+    use crate::{DishData, EMPTY_ARGS};
 
     #[test]
     fn test_to_octal() {
         let mut data = DishData::Bin(vec![42]);
         let _expected = DishData::Str(String::from("52"));
-        assert!(matches!(to_octal(None, &mut data), Ok(())));
-        assert!(matches!(data, _expected));
+        assert!(matches!(to_octal(&EMPTY_ARGS, &mut data), Ok(())));
+        assert_eq!(data, _expected);
     }
 
     #[test]
     fn test_from_octal() {
-        let mut data = DishData::Str("52".to_string());
-        let _expected = DishData::Bin(vec![42]);
-        assert!(matches!(from_octal(None, &mut data), Ok(())));
-        assert!(matches!(data, _expected));
+        let mut data = DishData::Str("150 145 154 154 157 40 167 157 162 154 144 41".to_string());
+        let _expected = DishData::Str("hello world!".to_string());
+        assert!(matches!(from_octal(&EMPTY_ARGS, &mut data), Ok(())));
+        assert_eq!(data, _expected);
     }
 
     #[test]
     fn test_to_hex() {
         let mut data = DishData::Bin(vec![15]);
         let _expected = DishData::Str(String::from("0f"));
-        assert!(matches!(to_hex(None, &mut data), Ok(())));
-        assert!(matches!(data, _expected));
+        assert!(matches!(to_hex(&EMPTY_ARGS, &mut data), Ok(())));
+        assert_eq!(data, _expected);
 
         let mut data = DishData::Bin(vec![26]);
         let _expected = DishData::Str(String::from("1a"));
-        assert!(matches!(to_hex(None, &mut data), Ok(())));
-        assert!(matches!(data, _expected));
+        assert!(matches!(to_hex(&EMPTY_ARGS, &mut data), Ok(())));
+        assert_eq!(data, _expected);
     }
 
     #[test]
     fn test_from_hex() {
         let mut data = DishData::Str(String::from("0f"));
-        let _expected = DishData::Bin(vec![15]);
+        let _expected = DishData::Str("\u{f}".to_string());
 
-        assert!(matches!(from_hex(None, &mut data), Ok(())));
-        assert!(matches!(data, _expected));
+        assert!(matches!(from_hex(&EMPTY_ARGS, &mut data), Ok(())));
+        assert_eq!(data, _expected);
 
         let mut data = DishData::Str(String::from("1a"));
-        let _expected = DishData::Bin(vec![26]);
-        assert!(matches!(from_hex(None, &mut data), Ok(())));
-        assert!(matches!(data, _expected));
+        let _expected = DishData::Str("\u{1a}".to_string());
+        assert!(matches!(from_hex(&EMPTY_ARGS, &mut data), Ok(())));
+        assert_eq!(data, _expected);
     }
 
     #[test]
     fn test_from_binary() {
         let mut data = DishData::Str("01101000 01100101 01101100 01101100 01101111".to_string());
-        let _expected = DishData::Bin("hello".as_bytes().to_vec());
+        let _expected = DishData::Str("hello".to_string());
 
-        assert!(matches!(from_binary(None, &mut data), Ok(())));
-        assert!(matches!(data, _expected));
+        assert!(matches!(from_binary(&EMPTY_ARGS, &mut data), Ok(())));
+        assert_eq!(data, _expected);
     }
 
     #[test]
     fn test_to_binary() {
-        let mut data = DishData::Str("hello".to_string());
-        let _expected = DishData::Str("01101000 01100101 01101100 01101100 01101111".to_string());
+        let mut data = DishData::Str("hello world!".to_string());
+        let _expected = DishData::Str("01101000 01100101 01101100 01101100 01101111 00100000 01110111 01101111 01110010 01101100 01100100 00100001".to_string());
 
-        assert!(matches!(to_binary(None, &mut data), Ok(())));
-        assert!(matches!(data, _expected));
+        assert!(matches!(to_binary(&EMPTY_ARGS, &mut data), Ok(())));
+        assert_eq!(data, _expected);
+    }
+
+    #[test]
+    fn test_from_decimal() {
+        let mut data = DishData::Str("104 101 108 108 111 32 119 111 114 108 100 33".to_string());
+        let _expected = DishData::Str("hello world!".to_string());
+
+        assert!(matches!(from_decimal(&EMPTY_ARGS, &mut data), Ok(())));
+        assert_eq!(data, _expected);
+    }
+
+    #[test]
+    fn test_to_decimal() {
+        let mut data = DishData::Str("hello world!".to_string());
+        let _expected = DishData::Str("104 101 108 108 111 32 119 111 114 108 100 33".to_string());
+
+        assert!(matches!(to_decimal(&EMPTY_ARGS, &mut data), Ok(())));
+        assert_eq!(data, _expected);
     }
 }

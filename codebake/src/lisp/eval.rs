@@ -195,7 +195,10 @@ pub fn eval_defn_args(exprs: &[Expression], env: &mut Environment) -> Result<Exp
 
 fn eval_quote_args(exprs: &[Expression]) -> Result<Expression, Error> {
     if exprs.len() != 1 {
-        return Err(Error(format!("expected a single argument, got {}", exprs.len())));
+        return Err(Error(format!(
+            "expected a single argument, got {}",
+            exprs.len()
+        )));
     }
 
     Ok(exprs[0].clone())

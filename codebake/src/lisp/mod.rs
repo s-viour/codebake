@@ -9,8 +9,8 @@
 
 mod eval;
 mod functions;
-mod parser;
 mod functions_nonnative;
+mod parser;
 
 pub use crate::lisp::parser::parse_eval;
 use crate::ops::OPERATIONS;
@@ -85,7 +85,7 @@ impl fmt::Display for Expression {
                 // so much deref
                 let deref = &*dish;
                 format!("{}", deref.borrow())
-            },
+            }
         };
         write!(f, "{}", s)
     }
@@ -102,7 +102,7 @@ impl fmt::Display for Error {
 //
 impl PartialEq for Expression {
     fn eq(&self, other: &Self) -> bool {
-        // if the enumerations aren't 
+        // if the enumerations aren't
         if std::mem::discriminant(self) != std::mem::discriminant(other) {
             return false;
         }
@@ -115,7 +115,7 @@ impl PartialEq for Expression {
             }
         } else if let Expression::String(s1) = self {
             if let Expression::String(s2) = other {
-                return s1 == s2
+                return s1 == s2;
             } else {
                 return false;
             }
@@ -138,10 +138,10 @@ impl PartialEq for Expression {
                     Dish::Success(d1) => match &*s2.borrow() {
                         Dish::Failure(_) => return false,
                         Dish::Success(d2) => return d1 == d2,
-                    }
+                    },
                 }
             } else {
-                return false
+                return false;
             }
         }
 
@@ -189,11 +189,21 @@ pub fn run_repl(env: Option<&mut Environment>) {
 
 fn check_parens(s: &String) -> bool {
     let mut count = 0;
+    let mut string_mode = false;
     for i in s.chars() {
         match i {
-            '(' => count += 1,
-            ')' => count -= 1,
-            _ => {},
+            '(' => {
+                if !string_mode {
+                    count += 1
+                }
+            }
+            ')' => {
+                if !string_mode {
+                    count -= 1
+                }
+            }
+            '\"' => string_mode = !string_mode,
+            _ => {}
         }
         if count < 0 {
             return false;
@@ -230,8 +240,7 @@ pub fn default_env<'a>() -> Environment<'a> {
     }
 
     for fxn in functions_nonnative::FUNCTIONS_NONNATIVE {
-        parse_eval(fxn.to_string(), &mut env)
-            .expect("non-native function failed to evaluate!");
+        parse_eval(fxn.to_string(), &mut env).expect("non-native function failed to evaluate!");
     }
 
     env

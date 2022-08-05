@@ -1,6 +1,4 @@
-use crate::{DishData, DishResult, OperationArg, OperationArgType, OperationInfo};
-use std::collections::HashMap;
-
+use crate::{DishData, DishResult, OperationArgType, OperationArguments, OperationInfo};
 
 fn rot13_helper_bin(n: i64, s: &mut [u8]) {
     s.iter_mut().for_each(|c| {
@@ -30,8 +28,8 @@ pub static OPINFO_ROT13: OperationInfo = OperationInfo {
     op: rot13,
 };
 
-fn rot13(args: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
-    let n = args.unwrap().get("n").unwrap().integer()?;
+fn rot13(args: &OperationArguments, dish: &mut DishData) -> DishResult {
+    let n = args.get_integer("n")?;
     match dish {
         DishData::Str(s) => {
             rot13_helper_str(n, s);
@@ -53,7 +51,7 @@ pub static OPINFO_REVERSE: OperationInfo = OperationInfo {
     op: reverse,
 };
 
-fn reverse(_: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> DishResult {
+fn reverse(_: &OperationArguments, dish: &mut DishData) -> DishResult {
     match dish {
         DishData::Str(d) => {
             *dish = DishData::Str(d.chars().rev().collect());
@@ -63,5 +61,48 @@ fn reverse(_: Option<&HashMap<String, OperationArg>>, dish: &mut DishData) -> Di
             d.reverse();
             Ok(())
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::ops::textual::*;
+    use crate::{DishData, EMPTY_ARGS};
+
+    static ALPHABET: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    #[test]
+    fn test_rot13() {
+        let _expected = vec![
+            DishData::Str("bcdefghijklmnopqrstuvwxyzaBCDEFGHIJKLMNOPQRSTUVWXYZA".to_string()),
+            DishData::Str("cdefghijklmnopqrstuvwxyzabCDEFGHIJKLMNOPQRSTUVWXYZAB".to_string()),
+            DishData::Str("defghijklmnopqrstuvwxyzabcDEFGHIJKLMNOPQRSTUVWXYZABC".to_string()),
+            DishData::Str("efghijklmnopqrstuvwxyzabcdEFGHIJKLMNOPQRSTUVWXYZABCD".to_string()),
+            DishData::Str("fghijklmnopqrstuvwxyzabcdeFGHIJKLMNOPQRSTUVWXYZABCDE".to_string()),
+            DishData::Str("ghijklmnopqrstuvwxyzabcdefGHIJKLMNOPQRSTUVWXYZABCDEF".to_string()),
+            DishData::Str("hijklmnopqrstuvwxyzabcdefgHIJKLMNOPQRSTUVWXYZABCDEFG".to_string()),
+            DishData::Str("ijklmnopqrstuvwxyzabcdefghIJKLMNOPQRSTUVWXYZABCDEFGH".to_string()),
+            DishData::Str("jklmnopqrstuvwxyzabcdefghiJKLMNOPQRSTUVWXYZABCDEFGHI".to_string()),
+            DishData::Str("klmnopqrstuvwxyzabcdefghijKLMNOPQRSTUVWXYZABCDEFGHIJ".to_string()),
+            DishData::Str("lmnopqrstuvwxyzabcdefghijkLMNOPQRSTUVWXYZABCDEFGHIJK".to_string()),
+            DishData::Str("mnopqrstuvwxyzabcdefghijklMNOPQRSTUVWXYZABCDEFGHIJKL".to_string()),
+            DishData::Str("nopqrstuvwxyzabcdefghijklmNOPQRSTUVWXYZABCDEFGHIJKLM".to_string())
+        ];
+
+        for (i, _exp) in _expected.iter().enumerate() {
+            let mut args = OperationArguments::new();
+            let mut data = DishData::Str(ALPHABET.to_string());
+            args.insert("n", (i + 1) as i64);
+            assert!(matches!(rot13(&args, &mut data), Ok(())));
+            assert_eq!(&data, _exp);
+        }
+    }
+
+    #[test]
+    fn test_reverse() {
+        let mut data = DishData::Str(ALPHABET.to_string());
+        let _expected = DishData::Str("ZYXWVUTSRQPONMLKJIHGFEDCBAzyxwvutsrqponmlkjihgfedcba".to_string());
+        assert!(matches!(reverse(&EMPTY_ARGS, &mut data), Ok(())));
+        assert_eq!(data, _expected);
     }
 }

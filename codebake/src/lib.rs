@@ -13,13 +13,18 @@ pub mod lisp;
 pub mod ops;
 
 use std::collections::HashMap;
+use std::convert::Into;
 use std::fmt;
 use std::result;
+
+/// Constant for an empty OperationArguments (i.e the inner field is None)
+///
+pub static EMPTY_ARGS: OperationArguments = OperationArguments { inner: None };
 
 /// An error that occurred while performing an operation
 /// on some DishData. This is the `E` type in `codebake::Result`.
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct DishError(String);
 
 /// DishData represents both the type of data and
@@ -31,7 +36,7 @@ pub struct DishError(String);
 /// Str represents textual (unicode or ascii) data
 /// Bin represents generic binary data
 ///
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub enum DishData {
     Str(String),
     Bin(Vec<u8>),
@@ -43,7 +48,7 @@ pub enum DishData {
 ///
 /// `Dish::apply` is the core function for operating on dishes.
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Dish {
     Success(DishData),
     Failure(DishError),
@@ -67,11 +72,11 @@ pub enum OperationArg {
 
 /// Function pointer to an operation
 ///
-type Operation = fn(Option<&HashMap<String, OperationArg>>, &mut DishData) -> DishResult;
+type Operation = fn(&OperationArguments, &mut DishData) -> DishResult;
 
 /// Entirely statically declared struct that holds all the information
 /// about an Operation required for embedding it in the lisp
-/// 
+///
 /// Fields:
 ///   * name        - name of the operation; must be named `lowercase-with-dashes`
 ///   * description - short description of what the operation does to the dish
@@ -93,6 +98,19 @@ pub struct OperationInfo {
     pub op: Operation,
 }
 
+/// Storage container for arguments to operations, guaranteed to be valid
+/// (i.e containing all required arguments) when passed as an argument to an Operation
+///
+/// Essentially acts as an Option<&HashMap<String, OperationArg>>
+///
+pub struct OperationArguments {
+    inner: Option<HashMap<String, OperationArg>>,
+}
+
+/// The Result type of codebake
+///
+pub type DishResult = result::Result<(), DishError>;
+
 impl PartialEq for OperationInfo {
     fn eq(&self, other: &OperationInfo) -> bool {
         self.name == other.name
@@ -102,10 +120,6 @@ impl PartialEq for OperationInfo {
         self.name != other.name
     }
 }
-
-/// The Result type of codebake
-///
-pub type DishResult = result::Result<(), DishError>;
 
 impl Dish {
     /// Consumes a `String` and produces a `Dish`
@@ -121,11 +135,7 @@ impl Dish {
     /// Takes a function of type `DishData -> DishResult` (AKA an operation)
     /// and consumes `self`, producing a new `Dish` with the
     /// operation applied.
-    pub fn apply(
-        &mut self,
-        op: Operation,
-        args: Option<&HashMap<String, OperationArg>>,
-    ) -> &mut Dish {
+    pub fn apply(&mut self, op: Operation, args: &OperationArguments) -> &mut Dish {
         if let Dish::Success(data) = self {
             let op = op;
             let v = op(args, data);
@@ -147,23 +157,57 @@ impl DishData {
     }
 }
 
- impl OperationArg {
-    fn integer(&self) -> Result<i64, DishError> {
-        if let OperationArg::Integer(i) = self {
-            Ok(*i)
-        } else {
-            Err(DishError(format!("expected integer, got {}", self)))
+impl OperationArguments {
+    pub fn new() -> OperationArguments {
+        OperationArguments {
+            inner: Some(HashMap::new()),
         }
     }
 
-    fn string(&self) -> Result<String, DishError> {
-        if let OperationArg::String(s) = self {
-            Ok(s.clone())
-        } else {
-            Err(DishError(format!("expected string, got {}", self)))
+    /// Polymorphic function to insert a value into the OperationArguments
+    pub fn insert<T: Into<OperationArg>>(&mut self, name: &str, data: T) {
+        let arg = data.into();
+        if let Some(h) = &mut self.inner {
+            h.insert(name.to_string(), arg);
         }
     }
- }
+
+    /// Get an integer out of the OperationArguments by-name
+    ///
+    pub fn get_integer(&self, name: &str) -> Result<i64, DishError> {
+        match &self.inner {
+            None => return Err(DishError("empty arguments".to_string())),
+            Some(h) => match h.get(name) {
+                None => Err(DishError("no such argument".to_string())),
+                Some(arg) => {
+                    if let OperationArg::Integer(i) = arg {
+                        Ok(*i)
+                    } else {
+                        Err(DishError("wrong argument type".to_string()))
+                    }
+                }
+            },
+        }
+    }
+
+    /// Get a string out of the OperationArguments by name
+    ///
+    pub fn get_string(&self, name: &str) -> Result<String, DishError> {
+        match &self.inner {
+            None => return Err(DishError("empty arguments".to_string())),
+            Some(h) => match h.get(name) {
+                None => Err(DishError("no such argument".to_string())),
+                Some(arg) => {
+                    if let OperationArg::String(s) = arg {
+                        Ok(s.clone())
+                    } else {
+                        Err(DishError("wrong argument type".to_string()))
+                    }
+                }
+            },
+        }
+    }
+}
 
 impl fmt::Display for Dish {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -196,5 +240,17 @@ impl fmt::Display for OperationArg {
             OperationArg::String(_) => "string",
         };
         write!(f, "{}", s)
+    }
+}
+
+impl Into<OperationArg> for i64 {
+    fn into(self) -> OperationArg {
+        OperationArg::Integer(self)
+    }
+}
+
+impl Into<OperationArg> for String {
+    fn into(self) -> OperationArg {
+        OperationArg::String(self)
     }
 }
