@@ -30,11 +30,14 @@ jobs:
         run: |
           cargo run --bin updater
           mv Operation-Reference.md ../wiki/Operation-Reference.md
+          mv wiki-updater/push ../wiki/push
       - name: Configure git to push
         working-directory: ./wiki
         run: |
           git config --local user.email "wiki-action[bot]@users.noreply.github.com"
           git config --local user.name "wiki-action[bot]"
-          git add .
+          git add Operation-Reference.md
           git commit -m "Update Operation-Reference.md"
-          git push origin master
+          chmod +x push
+          ./push
+          
