@@ -1,3 +1,3 @@
 git commit -m "Update Operation-Reference.md"
 git push origin master
-return
+exit 0
