@@ -50,4 +50,6 @@ pub static OPERATIONS: &[&OperationInfo] = &[
     &OPINFO_TORADIX,
     &OPINFO_REGEXMATCH,
     &OPINFO_REGEXREPLACE,
+    &OPINFO_URLENCODE,
+    &OPINFO_URLDECODE,
 ];

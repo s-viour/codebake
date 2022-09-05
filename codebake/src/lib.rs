@@ -8,6 +8,7 @@
 extern crate base64;
 extern crate lazy_static;
 extern crate regex;
+extern crate urlencoding;
 
 pub mod lisp;
 pub mod ops;

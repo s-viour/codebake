@@ -334,6 +334,48 @@ fn regex_replace(args: &OperationArguments, dish: &mut DishData) -> DishResult {
     Ok(())
 }
 
+pub static OPINFO_URLENCODE: OperationInfo = OperationInfo {
+    name: "url-encode",
+    description: "URL encodes a string",
+    authors: &["s-viour"],
+    category: "Data Format",
+    arguments: &[],
+    op: url_encode,
+};
+
+fn url_encode(_: &OperationArguments, dish: &mut DishData) -> DishResult {
+    let s = match std::str::from_utf8(dish.as_bytes()) {
+        Ok(s) => s,
+        Err(e) => return Err(DishError(format!("could not decode binary dish to utf8 for encoding: {}", e))),
+    };
+    *dish = DishData::Str(urlencoding::encode(s).to_owned().to_string());
+
+    Ok(())
+}
+
+pub static OPINFO_URLDECODE: OperationInfo = OperationInfo {
+    name: "url-decode",
+    description: "URL decodes a string",
+    authors: &["s-viour"],
+    category: "Data Format",
+    arguments: &[],
+    op: url_decode,
+};
+
+fn url_decode(_: &OperationArguments, dish: &mut DishData) -> DishResult {
+    let s = match std::str::from_utf8(dish.as_bytes()) {
+        Ok(s) => s,
+        Err(e) => return Err(DishError(format!("could not decode binary dish to utf8 for decoding: {}", e))),
+    };
+
+    *dish = match urlencoding::decode(s) {
+        Ok(s) => DishData::Str(s.to_owned().to_string()),
+        Err(e) => { return Err(DishError(format!("could not perform URL decode: {}", e))); },
+    };
+    
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use crate::ops::data_format::*;
@@ -415,6 +457,24 @@ mod tests {
         let _expected = DishData::Str("104 101 108 108 111 32 119 111 114 108 100 33".to_string());
 
         assert!(matches!(to_decimal(&EMPTY_ARGS, &mut data), Ok(())));
+        assert_eq!(data, _expected);
+    }
+
+    #[test]
+    fn test_url_encode() {
+        let mut data = DishData::Str("abcdefghijklmnopqrstuvwxyz!@#$%^&*()[]".to_string());
+        let _expected = DishData::Str("abcdefghijklmnopqrstuvwxyz%21%40%23%24%25%5E%26%2A%28%29%5B%5D".to_string());
+
+        assert!(matches!(url_encode(&EMPTY_ARGS, &mut data), Ok(())));
+        assert_eq!(data, _expected);
+    }
+
+    #[test]
+    fn test_url_decode() {
+        let mut data = DishData::Str("%F0%9F%91%BE%20Exterminate%21".to_string());
+        let _expected = DishData::Str("👾 Exterminate!".to_string());
+
+        assert!(matches!(url_decode(&EMPTY_ARGS, &mut data), Ok(())));
         assert_eq!(data, _expected);
     }
 }
