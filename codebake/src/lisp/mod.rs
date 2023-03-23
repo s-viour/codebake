@@ -106,9 +106,9 @@ impl PartialEq for Expression {
             (Expression::Bool(s1), Expression::Bool(s2)) => s1 == s2,
             (Expression::Dish(s1), Expression::Dish(s2)) => match (&*s1.borrow(), &*s2.borrow()) {
                 (Dish::Success(d1), Dish::Success(d2)) => d1 == d2,
-                _ => false
+                _ => false,
             },
-            _ => false
+            _ => false,
         }
     }
 }
@@ -208,4 +208,69 @@ pub fn default_env<'a>() -> Environment<'a> {
     }
 
     env
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{cell::RefCell, rc::Rc};
+
+    use crate::{lisp::Expression, Dish};
+
+    #[test]
+    fn test_symbol_eq() {
+        let lhs = Expression::Symbol("dungus".to_owned());
+        let rhs = Expression::Symbol("dungus".to_owned());
+
+        // think we would need magic to `impl Debug for Expression` to be able to use `assert_eq!` since `Expression::Func` contains an `Rc`
+        assert!(lhs == rhs);
+
+        let rhs = Expression::Symbol("dornkler".to_owned());
+        assert!(lhs != rhs);
+    }
+
+    #[test]
+    fn test_string_eq() {
+        let lhs = Expression::String("stork".to_owned());
+        let rhs = Expression::String("stork".to_owned());
+        assert!(lhs == rhs);
+
+        let rhs = Expression::String("porlep".to_owned());
+        assert!(lhs != rhs);
+    }
+
+    #[test]
+    fn test_number_eq() {
+        let lhs = Expression::Number(12.0);
+        let rhs = Expression::Number(12.0);
+        assert!(lhs == rhs);
+
+        let rhs = Expression::Number(47.0);
+        assert!(lhs != rhs);
+    }
+
+    #[test]
+    fn test_bool_eq() {
+        let lhs = Expression::Bool(true);
+        let rhs = Expression::Bool(true);
+        assert!(lhs == rhs);
+
+        let rhs = Expression::Bool(false);
+        assert!(lhs != rhs);
+    }
+
+    #[test]
+    fn test_dish_eq() {
+        let lhs = Expression::Dish(Rc::new(RefCell::new(Dish::from_string(
+            "lorgol".to_owned(),
+        ))));
+        let rhs = Expression::Dish(Rc::new(RefCell::new(Dish::from_string(
+            "lorgol".to_owned(),
+        ))));
+        assert!(lhs == rhs);
+
+        let rhs = Expression::Dish(Rc::new(RefCell::new(Dish::from_string(
+            "shumgobbler".to_owned(),
+        ))));
+        assert!(lhs != rhs);
+    }
 }
