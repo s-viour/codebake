@@ -12,9 +12,9 @@ mod functions;
 mod functions_nonnative;
 mod parser;
 
-pub use crate::lisp::parser::parse_eval;
 use crate::ops::OPERATIONS;
 use crate::Dish;
+pub use crate::lisp::parser::Reader;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt;
@@ -60,6 +60,15 @@ pub struct Error(String);
 pub struct Environment<'a> {
     data: HashMap<String, Expression>,
     outer: Option<&'a Environment<'a>>,
+}
+
+impl<'a> Environment<'a> {
+    pub fn empty() -> Environment<'a> {
+        Environment {
+            data: HashMap::new(),
+            outer: None,
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -117,11 +126,12 @@ impl PartialEq for Expression {
 /// an error occurs or stdin is closed
 ///
 pub fn run_repl(env: Option<&mut Environment>) {
+    let reader = Reader::new();
     let mut maybeenv: Box<Environment>;
     let env = match env {
         Some(env) => env,
         None => {
-            maybeenv = Box::new(default_env());
+            maybeenv = Box::new(default_env(&reader));
             &mut maybeenv
         }
     };
@@ -144,11 +154,15 @@ pub fn run_repl(env: Option<&mut Environment>) {
             }
         }
 
-        match parse_eval(expr, env) {
+        match parse_eval(&reader, env, &expr) {
             Ok(res) => println!("{}", res),
             Err(e) => println!("error: {}", e),
         }
     }
+}
+
+pub fn parse_eval(reader: &Reader, env: &mut Environment, expr: &String) -> LispResult {
+    eval::eval(&reader.parse(expr)?, env)
 }
 
 fn check_parens(s: &String) -> bool {
@@ -180,7 +194,7 @@ fn check_parens(s: &String) -> bool {
 /// Returns an instance of Environment that contains
 /// all the builtin functions and values
 ///
-pub fn default_env<'a>() -> Environment<'a> {
+pub fn default_env<'a>(reader: &Reader) -> Environment<'a> {
     let mut data: HashMap<String, Expression> = HashMap::new();
     data.insert("+".to_string(), functions::lisp_add());
     data.insert("-".to_string(), functions::lisp_subtract());
@@ -204,7 +218,8 @@ pub fn default_env<'a>() -> Environment<'a> {
     }
 
     for fxn in functions_nonnative::FUNCTIONS_NONNATIVE {
-        parse_eval(fxn.to_string(), &mut env).expect("non-native function failed to evaluate!");
+        parse_eval(reader, &mut env, &fxn.to_string())
+            .expect(format!("non-native function '{}' failed to evaluate!", fxn).as_str());
     }
 
     env

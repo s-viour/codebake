@@ -3,6 +3,7 @@ use web_sys::HtmlTextAreaElement;
 use yew::prelude::*;
 
 struct App {
+    reader: lisp::Reader,
     env: lisp::Environment<'static>,
     text_input: NodeRef,
     output: String,
@@ -17,8 +18,11 @@ impl Component for App {
     type Properties = ();
 
     fn create(_ctx: &Context<Self>) -> Self {
+        let reader = lisp::Reader::new();
+        let env = lisp::default_env(&reader);
         Self {
-            env: lisp::default_env(),
+            reader: reader,
+            env: env,
             text_input: NodeRef::default(),
             output: String::new(),
         }
@@ -42,7 +46,7 @@ impl Component for App {
                     log::debug!("{}", expr);
 
                     let expr_str = expr.to_string();
-                    match lisp::parse_eval(expr_str, &mut self.env) {
+                    match lisp::parse_eval(&self.reader, &mut self.env, &expr_str) {
                         Ok(expr) => self.output = format!("{}", expr),
                         Err(e) => self.output = format!("{}", e),
                     }

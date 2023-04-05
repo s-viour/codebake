@@ -4,102 +4,99 @@
 //! tutorial: https://stopa.io/post/222
 //!
 
-use crate::lisp::{eval::eval, Environment, Error, Expression};
-use lazy_static::lazy_static;
-use regex::Regex;
-use std::num::ParseFloatError;
+use crate::lisp::{Error, Expression};
+use chumsky::prelude::*;
+use chumsky::error::Cheap;
 
-pub fn parse_eval(expr: String, env: &mut Environment) -> Result<Expression, Error> {
-    let (parsed, _) = parse(&tokenize(expr))?;
-    let evald = eval(&parsed, env)?;
-    Ok(evald)
+pub struct Reader {
+    parser: Box<dyn Parser<char, Expression, Error = Cheap<char>>>,
 }
 
-pub fn tokenize(expr: String) -> Vec<String> {
-    lazy_static! {
-        // i used cyberchef to build & test this regex
-        // kinda funny since we're building a cyberchef clone
-        // *i used the stones to destroy the stones*
-        static ref RE: Regex = Regex::new("((\"(.*?)\")|[a-zA-Z0-9!@#\\?$&()=\\-`.+,/\"]+|\\(|\\))").unwrap();
-        static ref RE_STR: Regex = Regex::new("(\"(.*)\")").unwrap();
+impl Reader {
+    pub fn new() -> Reader {
+        Reader {
+            parser: Box::new(parser()),
+        }
     }
 
-    // we use a regex here so we can keep strings with spaces in them
-    // as one token. so "blah blah blah" gets tokenized as ["blah blah blah"]
-    // and not ["blah, blah, blah"]
-    let intermediate: String = RE
-        .find_iter(expr.as_str())
-        .map(|x| x.as_str().to_string())
-        // hehe this is a hack ^-^
-        // this code USED to apply this replacement to every token
-        // now, we selectively apply it to only tokens that don't contain a double-quote character
-        // this leaves strings 100% intact
-        // before, "(" would have been turned into " ( "
-        .map(|x| {
-            if !x.contains('\"') {
-                x.replace('(', " ( ").replace(')', " ) ")
-            } else {
-                x
+    pub fn parse(&self, s: &String) -> Result<Expression, Error> {
+        self.parser.parse(s.as_str().trim())
+            .map_err(convert_cheaps_to_err)
+    }
+}
+
+fn convert_cheaps_to_err<I, S: Clone>(cheaps: Vec<Cheap<I, S>>) -> Error {
+    Error(cheaps.iter()
+        .map(|cheap| cheap.label())
+        .fold("".to_string(), |mut a, n| {
+            match n {
+                Some(s) => { a.push_str(s); a},
+                _ => "".to_string(),
             }
         })
-        .collect::<Vec<String>>()
-        .join(" ");
-
-    let ret = RE
-        .find_iter(intermediate.as_str())
-        .map(|x| x.as_str().to_string())
-        .collect();
-
-    ret
+    )
 }
 
-pub fn read_seq(tokens: &[String]) -> Result<(Expression, &[String]), Error> {
-    let mut res: Vec<Expression> = Vec::new();
-    let mut xs = tokens;
+fn parser() -> impl Parser<char, Expression, Error = Cheap<char>> {
+    let ident = filter(is_ident_fchar)
+        .repeated().at_least(1)
+        .chain::<char, Vec<_>, _>(filter(is_ident_rchar).repeated())
+        .padded()
+        .collect::<String>()
+        .map(Expression::Symbol);
 
-    loop {
-        let (next_token, rest) = xs
-            .split_first()
-            .ok_or_else(|| Error("could not find closing ')'".to_string()))?;
+    let num = text::int(10)
+        .chain::<char, _, _>(just('.').chain(text::digits(10)).or_not().flatten())
+        .collect::<String>()
+        .from_str()
+        .unwrapped()
+        .map(Expression::Number);
 
-        if next_token == ")" {
-            return Ok((Expression::List(res), rest));
-        }
-        let (exp, new_xs) = parse(xs)?;
-        res.push(exp);
-        xs = new_xs;
-    }
+    let string = filter(|c: &char| *c != '"')
+        .repeated()
+        .delimited_by(just('"'), just('"'))
+        .collect::<String>()
+        .map(Expression::String);
+
+    //let single_quote = filter(|c: &char| *c == '\'');
+    let atom = ident.or(num).or(string);
+    let qatom = just('\'')
+        .ignore_then(atom)
+        .map(|e| Expression::List(vec![Expression::Symbol("quote".to_string()), e]));
+
+    let qlist = recursive(|qlist| qlist
+        .padded()
+        .repeated()
+        .map(Expression::List)
+        .map(|e| Expression::List(vec![Expression::Symbol("quote".to_string()), e]))
+        .delimited_by(just("'("), just(')'))
+        .or(atom)
+        .or(qatom));
+
+    let list = recursive(|list| list
+        .padded()
+        .repeated()
+        .map(Expression::List)
+        .delimited_by(just('('), just(')'))
+        .or(atom)
+        .or(qatom)
+        .or(qlist));
+
+    recursive(|expr| expr
+        .padded()
+        .repeated()
+        .map(Expression::List)
+        .map(|e| Expression::List(vec![Expression::Symbol("quote".to_string()), e]))
+        .delimited_by(just("'("), just(')'))
+        .or(atom)
+        .or(qatom)
+        .or(list)).then_ignore(end())
 }
 
-pub fn parse_atom(token: &str) -> Expression {
-    if token == "true" {
-        return Expression::Bool(true);
-    } else if token == "false" {
-        return Expression::Bool(false);
-    }
-
-    let mut chrs = token.chars();
-    if chrs.next().unwrap() == '\"' && chrs.nth_back(0).unwrap() == '\"' {
-        return Expression::String(chrs.collect());
-    }
-
-    let potential_float: Result<f64, ParseFloatError> = token.parse();
-    match potential_float {
-        Ok(f) => Expression::Number(f),
-        // the tutorial performs a `.clone()` here, dunno why.
-        // don't think you need it tho
-        Err(_) => Expression::Symbol(token.to_string()),
-    }
+fn is_ident_fchar(c: &char) -> bool {
+    c.is_alphabetic() || "*+!-_?<>".contains(*c)
 }
 
-pub fn parse(tokens: &[String]) -> Result<(Expression, &[String]), Error> {
-    let (token, rest) = tokens
-        .split_first()
-        .ok_or_else(|| Error("could not get token".to_string()))?;
-
-    match &token[..] {
-        "(" => read_seq(rest),
-        ")" => Err(Error("unexpected `)`".to_string())),
-        _ => Ok((parse_atom(token), rest)),
-    }
+fn is_ident_rchar(c: &char) -> bool {
+    c.is_alphanumeric() || "*+!-_?<>".contains(*c)
 }
