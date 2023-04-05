@@ -55,12 +55,19 @@ fn parser() -> impl Parser<char, Expression, Error = Cheap<char>> {
         .map(Expression::Symbol);
 
     // parses a single number
-    let number = text::int(10)
+    let pos_number = text::int(10)
         .chain::<char, _, _>(just('.').chain(text::digits(10)).or_not().flatten())
         .collect::<String>()
         .from_str()
         .unwrapped()
         .map(Expression::Number);
+
+    let number = filter(|c: &char| *c == '-')
+        .repeated()
+        .at_least(1)
+        .ignore_then(pos_number)
+        .map(|e| match e { Expression::Number(n) => Expression::Number(-n), _ => e, })
+        .or(pos_number);
 
     // parses a single string
     let string = filter(|c: &char| *c != '"')
@@ -70,7 +77,7 @@ fn parser() -> impl Parser<char, Expression, Error = Cheap<char>> {
         .map(Expression::String);
 
     // parses a single atom
-    let atom = symbol.or(number).or(string);
+    let atom = number.or(symbol).or(string);
     // parses a quoted atom
     let qatom = just('\'')
         .ignore_then(atom)
@@ -124,7 +131,49 @@ mod tests {
     use crate::lisp::{Expression, Reader};
 
     #[test]
-    fn test_reader_basic() {
+    fn test_reader_string() {
+        let reader = Reader::new();
+        let expr1 = "\"string\"".to_string();
+        let _exp1 = Expression::String("string".to_string());
+        let expr2 = "\"this is a\tlong string\nmany spaces\"".to_string();
+        let _exp2 = Expression::String("this is a\tlong string\nmany spaces".to_string());
+
+        assert!(matches!(
+            reader.parse(&expr1),
+            Ok(_exp1)
+        ));
+        assert!(matches!(
+            reader.parse(&expr2),
+            Ok(_exp2)
+        ));
+    }
+
+    #[test]
+    fn test_reader_number() {
+        let reader = Reader::new();
+        let expr1 = "-12".to_string();
+        let _exp1 = Expression::Number(-12.0);
+        let expr2 = "-3.14159".to_string();
+        let _exp2 = Expression::Number(-3.14159);
+        let expr3 = "300.14159".to_string();
+        let _exp3 = Expression::Number(300.14159);
+
+        assert!(matches!(
+            reader.parse(&expr1),
+            Ok(_exp1)
+        ));
+        assert!(matches!(
+            reader.parse(&expr2),
+            Ok(_exp2)
+        ));
+        assert!(matches!(
+            reader.parse(&expr3),
+            Ok(_exp3)
+        ));
+    }
+
+    #[test]
+    fn test_reader_list() {
         let reader = Reader::new();
         let expr1 = "(+ 2 3)".to_string();
         let _exp1 = Expression::Number(5.0);
