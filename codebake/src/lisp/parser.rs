@@ -8,6 +8,9 @@ use crate::lisp::{Error, Expression};
 use chumsky::error::SimpleReason;
 use chumsky::prelude::*;
 use std::hash::Hash;
+use std::rc::Rc;
+use std::cell::RefCell;
+use crate::Dish;
 
 pub struct Reader {
     parser: Box<dyn Parser<char, Expression, Error = Simple<char>>>,
@@ -91,8 +94,49 @@ fn parser() -> impl Parser<char, Expression, Error = Simple<char>> {
         .collect::<String>()
         .map(Expression::String);
 
+    let byte = text::int::<_, Simple<char>>(10)
+        .padded()
+        .try_map(|s, span| s
+            .parse::<u8>()
+            .map_err(|e| Simple::custom(span, format!("{}", e))));
+
+    let vector = byte
+        .repeated()
+        .delimited_by(just('['), just(']'))
+        .map(|v| v.iter().map(|n| Expression::Number(*n as f64)).collect())
+        .map(Expression::List);
+
+    let dish_literal_str = just('d')
+        .ignore_then(string)
+        .map(|e| {
+            if let Expression::String(s) = e {
+                let dish = Rc::new(RefCell::new(Dish::from_string(s)));
+                Expression::Dish(dish)
+            } else {
+                panic!("invalid expression passed to dish literal");
+            }
+        });
+
+    let dish_literal_vec = just('d')
+        .ignore_then(vector)
+        .map(|e| {
+            if let Expression::List(ns) = e {
+                let data = ns.iter().map(|e| {
+                    if let Expression::Number(n) = e {
+                        *n as u8
+                    } else {
+                        panic!("invalid expression passed to dish literal");
+                    }
+                }).collect::<Vec<u8>>();
+                let dish = Rc::new(RefCell::new(Dish::from_bytes(data)));
+                Expression::Dish(dish)
+            } else {
+                panic!("invalid expression passed to dish literal");
+            }
+        });
+
     // parses a single atom
-    let atom = number.or(symbol).or(string);
+    let atom = dish_literal_str.or(dish_literal_vec).or(vector).or(number).or(symbol).or(string);
     // parses a quoted atom
     let qatom = just('\'')
         .ignore_then(atom)
@@ -159,6 +203,9 @@ fn is_symbol_rchar(c: &char) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use std::rc::Rc;
+    use std::cell::RefCell;
+    use crate::Dish;
     use crate::lisp::{Expression, Reader};
 
     #[test]
@@ -214,6 +261,18 @@ mod tests {
         ]);
         let expr2 = "(apply + '(3 4 5))".to_string();
         let _exp2 = Expression::Number(12.0);
+
+        assert!(matches!(reader.parse(&expr1), Ok(_exp1)));
+        assert!(matches!(reader.parse(&expr2), Ok(_exp2)));
+    }
+
+    #[test]
+    fn test_reader_dish_literal() {
+        let reader = Reader::new();
+        let expr1 = "d\"hello world\"".to_string();
+        let _exp1 = Expression::Dish(Rc::new(RefCell::new(Dish::from_string("hello world".to_string()))));
+        let expr2 = "d[24 25 26]".to_string();
+        let _exp2 = Expression::Dish(Rc::new(RefCell::new(Dish::from_bytes(vec![24, 25, 26]))));
 
         assert!(matches!(reader.parse(&expr1), Ok(_exp1)));
         assert!(matches!(reader.parse(&expr2), Ok(_exp2)));

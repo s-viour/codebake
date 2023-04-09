@@ -202,7 +202,7 @@ pub fn lisp_dish() -> Expression {
 
 pub fn lisp_recipe() -> Expression {
     Expression::Func(Rc::new(|args: &[Expression]| -> LispResult {
-        ensure_exact_args(args, 2)?;
+        ensure_at_least_args(args, 1)?;
 
         let mut funcs: Vec<Expression> = Vec::new();
         for expr in args {
