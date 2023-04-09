@@ -193,12 +193,12 @@ fn parser() -> impl Parser<char, Expression, Error = Simple<char>> {
 
 /// predicate of whether or not a character can be the first character of a symbol name
 fn is_symbol_fchar(c: &char) -> bool {
-    c.is_alphabetic() || "*+!-_?<>:".contains(*c)
+    c.is_alphabetic() || "*=+!-_?<>:".contains(*c)
 }
 
 /// predicate of whether or not a character can be anywhere else in a symbol name
 fn is_symbol_rchar(c: &char) -> bool {
-    c.is_alphanumeric() || "*+!-_?<>".contains(*c)
+    c.is_alphanumeric() || "=*+!-_?<>".contains(*c)
 }
 
 #[cfg(test)]

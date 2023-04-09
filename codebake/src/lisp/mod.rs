@@ -71,6 +71,13 @@ impl<'a> Environment<'a> {
     }
 }
 
+impl<'a> Default for Environment<'a> {
+    fn default() -> Environment<'a> {
+        let reader = Reader::new();
+        default_env(&reader)
+    }
+}
+
 #[derive(Clone)]
 pub struct Lambda {
     params: Rc<Expression>,
@@ -122,46 +129,71 @@ impl PartialEq for Expression {
     }
 }
 
-/// Starts a repl on stdin and blocks until either
-/// an error occurs or stdin is closed
-///
-pub fn run_repl(env: Option<&mut Environment>) {
-    let reader = Reader::new();
-    let mut maybeenv: Box<Environment>;
-    let env = match env {
-        Some(env) => env,
-        None => {
-            maybeenv = Box::new(default_env(&reader));
-            &mut maybeenv
+pub type InterpreterResult = std::result::Result<String, Error>;
+
+pub struct Interpreter<'a> {
+    reader: Reader,
+    env: Environment<'a>,
+}
+
+impl<'a> Interpreter<'a> {
+    pub fn new() -> Self {
+        let reader = Reader::new();
+        let mut env = Environment::empty();
+        env.data.insert(":ans".to_string(), Expression::Symbol("nil".to_string()));
+
+        Interpreter {
+            reader,
+            env,
         }
-    };
-    env.data.insert(":ans".to_string(), Expression::Symbol("nil".to_string()));
+    }
 
-    let stdin = io::stdin();
-
-    loop {
-        let mut expr = String::new();
-        print!("codebake> ");
-        io::stdout().flush().expect("failed to flush output");
-
-        loop {
-            match stdin.read_line(&mut expr) {
-                Ok(0) => return,
-                Ok(_) => {}
-                Err(e) => panic!("{}", e),
-            }
-
-            if check_parens(&expr) {
-                break;
-            }
-        }
-
-        match parse_eval(&reader, env, &expr) {
+    pub fn eval(&mut self, s: &String) -> InterpreterResult {
+        match parse_eval(&self.reader, &mut self.env, &s) {
             Ok(res) => {
-                env.data.insert(":ans".to_string(), res.clone());
-                println!("{}", res)
+                self.env.data.insert(":ans".to_string(), res.clone());
+                Ok(format!("{}", res))
             },
-            Err(e) => println!("error: {}", e),
+            Err(e) => Err(e),
+        }
+    }
+
+    pub fn run_repl(&mut self) {
+        let stdin = io::stdin();
+
+        let mut expr = String::new();
+        loop {
+            expr.clear();
+            print!("codebake> ");
+            io::stdout().flush().expect("failed to flush output");
+
+            loop {
+                match stdin.read_line(&mut expr) {
+                    Ok(0) => return,
+                    Ok(_) => {}
+                    Err(e) => panic!("{}", e),
+                }
+
+                if check_parens(&expr) {
+                    break;
+                }
+            }
+
+            match self.eval(&expr) {
+                Ok(s) => println!("{}", s),
+                Err(e) => println!("error: {}", e),
+            };
+        }
+    }
+}
+
+impl<'a> Default for Interpreter<'a> {
+    fn default() -> Self {
+        let reader = Reader::new();
+        let env = default_env(&reader);
+        Interpreter {
+            reader,
+            env,
         }
     }
 }
@@ -201,6 +233,9 @@ fn check_parens(s: &String) -> bool {
 ///
 pub fn default_env<'a>(reader: &Reader) -> Environment<'a> {
     let mut data: HashMap<String, Expression> = HashMap::new();
+    data.insert("true".to_string(), Expression::Bool(true));
+    data.insert("false".to_string(), Expression::Bool(false));
+
     data.insert("+".to_string(), functions::lisp_add());
     data.insert("-".to_string(), functions::lisp_subtract());
     data.insert("=".to_string(), functions::lisp_eq());

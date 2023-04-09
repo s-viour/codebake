@@ -1,4 +1,5 @@
 use codebake::lisp;
 fn main() {
-    lisp::run_repl(None);
+    let mut codebake = lisp::Interpreter::default();
+    codebake.run_repl();
 }
