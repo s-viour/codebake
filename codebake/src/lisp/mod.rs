@@ -140,12 +140,10 @@ impl<'a> Interpreter<'a> {
     pub fn new() -> Self {
         let reader = Reader::new();
         let mut env = Environment::empty();
-        env.data.insert(":ans".to_string(), Expression::Symbol("nil".to_string()));
+        env.data
+            .insert(":ans".to_string(), Expression::Symbol("nil".to_string()));
 
-        Interpreter {
-            reader,
-            env,
-        }
+        Interpreter { reader, env }
     }
 
     pub fn eval(&mut self, s: &String) -> InterpreterResult {
@@ -153,7 +151,7 @@ impl<'a> Interpreter<'a> {
             Ok(res) => {
                 self.env.data.insert(":ans".to_string(), res.clone());
                 Ok(format!("{}", res))
-            },
+            }
             Err(e) => Err(e),
         }
     }
@@ -191,10 +189,7 @@ impl<'a> Default for Interpreter<'a> {
     fn default() -> Self {
         let reader = Reader::new();
         let env = default_env(&reader);
-        Interpreter {
-            reader,
-            env,
-        }
+        Interpreter { reader, env }
     }
 }
 
