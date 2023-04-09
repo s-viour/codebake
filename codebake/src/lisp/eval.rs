@@ -11,7 +11,7 @@ use std::rc::Rc;
 pub fn eval(expr: &Expression, env: &mut Environment) -> Result<Expression, Error> {
     match expr {
         Expression::Symbol(k) => {
-            env_get(k, env).ok_or_else(|| Error(format!("unexpected symbol `{}`", k)))
+            env_get(k, env).ok_or_else(|| Error(format!("unexpected symbol '{}'.", k)))
         }
         Expression::Number(_) => Ok(expr.clone()),
         Expression::Bool(_) => Ok(expr.clone()),
@@ -19,7 +19,7 @@ pub fn eval(expr: &Expression, env: &mut Environment) -> Result<Expression, Erro
         Expression::List(list) => {
             let first_form = list
                 .first()
-                .ok_or_else(|| Error("expected non-empty list".to_string()))?;
+                .ok_or_else(|| Error("expected a non-empty list.".to_string()))?;
 
             let arg_forms = &list[1..];
             match eval_builtin_form(first_form, arg_forms, env) {
@@ -32,13 +32,16 @@ pub fn eval(expr: &Expression, env: &mut Environment) -> Result<Expression, Erro
                             let new_env = &mut env_for_lambda(f.params, arg_forms, env)?;
                             eval(&f.body, new_env)
                         }
-                        other => Err(Error(format!("first form must be function, got {}", other))),
+                        other => Err(Error(format!(
+                            "expected first expression to be a function. got '{}'.",
+                            other
+                        ))),
                     }
                 }
             }
         }
-        Expression::Func(_) => Err(Error("unexpected form".to_string())),
-        Expression::Lambda(_) => Err(Error("unexpected form".to_string())),
+        Expression::Func(_) => Err(Error("cannot eval function.".to_string())),
+        Expression::Lambda(_) => Err(Error("cannot eval lambda function.".to_string())),
         Expression::Dish(_) => Ok(expr.clone()),
     }
 }
@@ -65,7 +68,7 @@ fn env_for_lambda<'a>(
     let ks = parse_list_of_symbol_strings(params)?;
     if ks.len() != arg_forms.len() {
         return Err(Error(format!(
-            "expected {} arguments, got {}",
+            "expected {} arguments. got {}.",
             ks.len(),
             arg_forms.len()
         )));
@@ -84,12 +87,15 @@ fn env_for_lambda<'a>(
 fn parse_list_of_symbol_strings(form: Rc<Expression>) -> Result<Vec<String>, Error> {
     let list = match form.as_ref() {
         Expression::List(s) => Ok(s.clone()),
-        _ => Err(Error("expected args for to be a list".to_string())),
+        _ => Err(Error(format!(
+            "expected argument to be a list. got '{}'.",
+            form.as_ref()
+        ))),
     }?;
     list.iter()
         .map(|x| match x {
             Expression::Symbol(s) => Ok(s.clone()),
-            _ => Err(Error("expected symbols in the argument list".to_string())),
+            _ => Err(Error(format!("expected symbol. got '{}'.", x))),
         })
         .collect()
 }
@@ -115,34 +121,37 @@ pub fn eval_builtin_form(
 pub fn eval_if_args(exprs: &[Expression], env: &mut Environment) -> Result<Expression, Error> {
     let test_form = exprs
         .first()
-        .ok_or_else(|| Error("expected expression after if".to_string()))?;
+        .ok_or_else(|| Error("expected test expression. got nothing.".to_string()))?;
     let test_eval = eval(test_form, env)?;
     match test_eval {
         Expression::Bool(b) => {
             let form_idx = if b { 1 } else { 2 };
             let res_form = exprs
                 .get(form_idx)
-                .ok_or_else(|| Error(format!("expected branch: {}", form_idx)))?;
+                .ok_or_else(|| Error(format!("expected branch. got '{}'.", form_idx)))?;
             eval(res_form, env)
         }
-        _ => Err(Error(format!("unexpected test `{}`", test_form))),
+        _ => Err(Error(format!(
+            "expected boolean expression. got '{}'.",
+            test_form
+        ))),
     }
 }
 
 pub fn eval_def_args(exprs: &[Expression], env: &mut Environment) -> Result<Expression, Error> {
     let first_form = exprs
         .first()
-        .ok_or_else(|| Error("expected symbol name".to_string()))?;
+        .ok_or_else(|| Error("expected symbol name. got nothing.".to_string()))?;
     let first_str = match first_form {
         Expression::Symbol(s) => Ok(s.clone()),
-        other => Err(Error(format!("expected symbol, not {}", other))),
+        other => Err(Error(format!("expected symbol. got '{}'.", other))),
     }?;
     let second_form = exprs
         .get(1)
-        .ok_or_else(|| Error("expected expression".to_string()))?;
+        .ok_or_else(|| Error("expected expression. got nothing.".to_string()))?;
     if exprs.len() > 2 {
         return Err(Error(
-            "`def` expression can only have 2 arguments".to_string(),
+            "define expression must only have a symbol and an expression.".to_string(),
         ));
     }
     let second_eval = eval(second_form, env)?;
@@ -154,12 +163,14 @@ pub fn eval_def_args(exprs: &[Expression], env: &mut Environment) -> Result<Expr
 pub fn eval_lambda_args(arg_forms: &[Expression]) -> Result<Expression, Error> {
     let params_expr = arg_forms
         .first()
-        .ok_or_else(|| Error("expected arguments".to_string()))?;
+        .ok_or_else(|| Error("expected parameters. got nothing.".to_string()))?;
     let body_expr = arg_forms
         .get(1)
-        .ok_or_else(|| Error("expected body".to_string()))?;
+        .ok_or_else(|| Error("expected function body. got nothing.".to_string()))?;
     if arg_forms.len() > 2 {
-        return Err(Error("fn definition must only have two forms".to_string()))?;
+        return Err(Error(
+            "function definition must only have an argument list and a body.".to_string(),
+        ))?;
     }
     Ok(Expression::Lambda(Lambda {
         body: Rc::new(body_expr.clone()),
@@ -170,10 +181,10 @@ pub fn eval_lambda_args(arg_forms: &[Expression]) -> Result<Expression, Error> {
 pub fn eval_defn_args(exprs: &[Expression], env: &mut Environment) -> Result<Expression, Error> {
     let first_form = exprs
         .first()
-        .ok_or_else(|| Error("expected symbol name".to_string()))?;
+        .ok_or_else(|| Error("expected symbol name. got nothing.".to_string()))?;
     let name = match first_form {
         Expression::Symbol(s) => Ok(s.clone()),
-        other => Err(Error(format!("expected symbol, not {}", other))),
+        other => Err(Error(format!("expected symbol. got '{}'.", other))),
     }?;
     let params_expr = exprs
         .get(1)
@@ -196,7 +207,7 @@ pub fn eval_defn_args(exprs: &[Expression], env: &mut Environment) -> Result<Exp
 fn eval_quote_args(exprs: &[Expression]) -> Result<Expression, Error> {
     if exprs.len() != 1 {
         return Err(Error(format!(
-            "expected a single argument, got {}",
+            "expected exactly 1 argument. got {}.",
             exprs.len()
         )));
     }

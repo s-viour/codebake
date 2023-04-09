@@ -5,11 +5,12 @@
 //!
 
 use crate::lisp::{Error, Expression};
+use chumsky::error::SimpleReason;
 use chumsky::prelude::*;
-use chumsky::error::Cheap;
+use std::hash::Hash;
 
 pub struct Reader {
-    parser: Box<dyn Parser<char, Expression, Error = Cheap<char>>>,
+    parser: Box<dyn Parser<char, Expression, Error = Simple<char>>>,
 }
 
 impl Reader {
@@ -24,31 +25,42 @@ impl Reader {
     ///! Attempts to parse a string `s` as an expression
     ///!
     pub fn parse(&self, s: &String) -> Result<Expression, Error> {
-        self.parser.parse(s.as_str().trim())
+        self.parser
+            .parse(s.as_str().trim())
             .map_err(convert_cheaps_to_err)
     }
 }
 
 /// Converts a vector of `Cheap`s into a `lisp::Error`. This is utilized by `Reader::parse`
-/// 
-fn convert_cheaps_to_err<I, S: Clone>(cheaps: Vec<Cheap<I, S>>) -> Error {
-    Error(cheaps.iter()
-        .map(|cheap| cheap.label())
-        .fold("".to_string(), |mut a, n| {
-            match n {
-                Some(s) => { a.push_str(s); a},
-                _ => "".to_string(),
-            }
-        })
+///
+fn convert_cheaps_to_err<I: Eq + Hash, S: Clone>(cheaps: Vec<Simple<I, S>>) -> Error {
+    Error(
+        cheaps
+            .iter()
+            .map(|cheap| cheap.reason())
+            .map(|e| match e {
+                SimpleReason::Unexpected => "unexpected input".to_string(),
+                SimpleReason::Unclosed { .. } => "unclosed parenthesis".to_string(),
+                SimpleReason::Custom(s) => s.to_string(),
+            })
+            .fold("".to_string(), |mut a, n| {
+                a.push_str(&n);
+                a
+            }),
     )
 }
 
 /// This implements the lisp parser!
-/// 
-fn parser() -> impl Parser<char, Expression, Error = Cheap<char>> {
+///
+/// This function could be improved ***significantly*** because I don't really understand chumsky
+/// all that well and I wasn't sure how to get embedded quoting working correctly. That's why there's
+/// two `list` declarations and basically two `qlist` declarations.
+///
+fn parser() -> impl Parser<char, Expression, Error = Simple<char>> {
     // parses a single symbol
     let symbol = filter(is_symbol_fchar)
-        .repeated().at_least(1)
+        .repeated()
+        .at_least(1)
         .chain::<char, Vec<_>, _>(filter(is_symbol_rchar).repeated())
         .padded()
         .collect::<String>()
@@ -66,7 +78,10 @@ fn parser() -> impl Parser<char, Expression, Error = Cheap<char>> {
         .repeated()
         .at_least(1)
         .ignore_then(pos_number)
-        .map(|e| match e { Expression::Number(n) => Expression::Number(-n), _ => e, })
+        .map(|e| match e {
+            Expression::Number(n) => Expression::Number(-n),
+            _ => e,
+        })
         .or(pos_number);
 
     // parses a single string
@@ -83,37 +98,53 @@ fn parser() -> impl Parser<char, Expression, Error = Cheap<char>> {
         .ignore_then(atom)
         .map(|e| Expression::List(vec![Expression::Symbol("quote".to_string()), e]));
 
+    // parses a single list of only atoms
+    let list1 = recursive(|list| {
+        list.padded()
+            .repeated()
+            .map(Expression::List)
+            .delimited_by(just('('), just(')'))
+            .or(atom)
+            .or(qatom)
+    });
+
     // parses a quoted list
-    let qlist = recursive(|qlist| qlist
-        .padded()
-        .repeated()
-        .map(Expression::List)
-        .map(|e| Expression::List(vec![Expression::Symbol("quote".to_string()), e]))
-        .delimited_by(just("'("), just(')'))
-        .or(atom)
-        .or(qatom));
+    let qlist = recursive(|qlist| {
+        qlist
+            .padded()
+            .repeated()
+            .map(Expression::List)
+            .map(|e| Expression::List(vec![Expression::Symbol("quote".to_string()), e]))
+            .delimited_by(just("'("), just(')'))
+            .or(atom)
+            .or(qatom)
+            .or(list1)
+    });
 
     // parses a regular list
-    let list = recursive(|list| list
-        .padded()
-        .repeated()
-        .map(Expression::List)
-        .delimited_by(just('('), just(')'))
-        .or(atom)
-        .or(qatom)
-        .or(qlist));
+    let list2 = recursive(|list| {
+        list.padded()
+            .repeated()
+            .map(Expression::List)
+            .delimited_by(just('('), just(')'))
+            .or(atom)
+            .or(qatom)
+            .or(qlist)
+    });
 
     // this is basically a superposition of qlist and list
     // this begins parsing from the top and supports quoting things at the top-level
-    recursive(|expr| expr
-        .padded()
-        .repeated()
-        .map(Expression::List)
-        .map(|e| Expression::List(vec![Expression::Symbol("quote".to_string()), e]))
-        .delimited_by(just("'("), just(')'))
-        .or(atom)
-        .or(qatom)
-        .or(list)).then_ignore(end())
+    recursive(|expr| {
+        expr.padded()
+            .repeated()
+            .map(Expression::List)
+            .map(|e| Expression::List(vec![Expression::Symbol("quote".to_string()), e]))
+            .delimited_by(just("'("), just(')'))
+            .or(atom)
+            .or(qatom)
+            .or(list2)
+    })
+    .then_ignore(end())
 }
 
 /// predicate of whether or not a character can be the first character of a symbol name
@@ -138,14 +169,8 @@ mod tests {
         let expr2 = "\"this is a\tlong string\nmany spaces\"".to_string();
         let _exp2 = Expression::String("this is a\tlong string\nmany spaces".to_string());
 
-        assert!(matches!(
-            reader.parse(&expr1),
-            Ok(_exp1)
-        ));
-        assert!(matches!(
-            reader.parse(&expr2),
-            Ok(_exp2)
-        ));
+        assert!(matches!(reader.parse(&expr1), Ok(_exp1)));
+        assert!(matches!(reader.parse(&expr2), Ok(_exp2)));
     }
 
     #[test]
@@ -158,18 +183,9 @@ mod tests {
         let expr3 = "300.14159".to_string();
         let _exp3 = Expression::Number(300.14159);
 
-        assert!(matches!(
-            reader.parse(&expr1),
-            Ok(_exp1)
-        ));
-        assert!(matches!(
-            reader.parse(&expr2),
-            Ok(_exp2)
-        ));
-        assert!(matches!(
-            reader.parse(&expr3),
-            Ok(_exp3)
-        ));
+        assert!(matches!(reader.parse(&expr1), Ok(_exp1)));
+        assert!(matches!(reader.parse(&expr2), Ok(_exp2)));
+        assert!(matches!(reader.parse(&expr3), Ok(_exp3)));
     }
 
     #[test]
@@ -180,14 +196,8 @@ mod tests {
         let expr2 = "(def a (- 112.4 12.2))".to_string();
         let _exp2 = Expression::Symbol("a".to_string());
 
-        assert!(matches!(
-            reader.parse(&expr1),
-            Ok(_exp1)
-        ));
-        assert!(matches!(
-            reader.parse(&expr2),
-            Ok(_exp2)
-        ));
+        assert!(matches!(reader.parse(&expr1), Ok(_exp1)));
+        assert!(matches!(reader.parse(&expr2), Ok(_exp2)));
     }
 
     #[test]
@@ -196,18 +206,16 @@ mod tests {
         let expr1 = "'(1 2 3)".to_string();
         let _exp1 = Expression::List(vec![
             Expression::Symbol("quote".to_string()),
-            Expression::List(vec![Expression::Number(1.0), Expression::Number(2.0), Expression::Number(3.0)])
+            Expression::List(vec![
+                Expression::Number(1.0),
+                Expression::Number(2.0),
+                Expression::Number(3.0),
+            ]),
         ]);
         let expr2 = "(apply + '(3 4 5))".to_string();
         let _exp2 = Expression::Number(12.0);
 
-        assert!(matches!(
-            reader.parse(&expr1),
-            Ok(_exp1)
-        ));
-        assert!(matches!(
-            reader.parse(&expr2),
-            Ok(_exp2)
-        ));
+        assert!(matches!(reader.parse(&expr1), Ok(_exp1)));
+        assert!(matches!(reader.parse(&expr2), Ok(_exp2)));
     }
 }

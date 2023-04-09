@@ -18,14 +18,13 @@ pub fn embed_operation(oi: &'static OperationInfo, env: &mut Environment) {
         env.data.insert(
             oi.name.to_string(),
             Expression::Func(Rc::new(move |args: &[Expression]| -> LispResult {
-                if args.len() != 1 {
-                    return Err(Error("expected an argument".to_string()));
-                }
+                ensure_exact_args(args, 1)?;
+
                 if let Expression::Dish(dish) = &args[0] {
                     dish.borrow_mut().apply(oi.op, &EMPTY_ARGS);
                     Ok(Expression::Dish(dish.clone()))
                 } else {
-                    Err(Error("must be dish".to_string()))
+                    Err(Error("1st argument must be a Dish".to_string()))
                 }
             })),
         );
@@ -39,14 +38,13 @@ pub fn embed_operation(oi: &'static OperationInfo, env: &mut Environment) {
             let hargs = parse_args(oi, args)?;
             Ok(Expression::Func(Rc::new(
                 move |args: &[Expression]| -> LispResult {
-                    if args.len() != 1 {
-                        return Err(Error("expected an argument".to_string()));
-                    }
+                    ensure_exact_args(args, 1)?;
+
                     if let Expression::Dish(dish) = &args[0] {
                         dish.borrow_mut().apply(oi.op, &hargs);
                         Ok(Expression::Dish(dish.clone()))
                     } else {
-                        Err(Error("must be dish".to_string()))
+                        Err(Error("1st argument must be a Dish".to_string()))
                     }
                 },
             )))
@@ -60,7 +58,7 @@ fn parse_arg(typ: &OperationArgType, expr: &Expression) -> Result<OperationArg, 
             if let Expression::Number(n) = expr {
                 Ok(OperationArg::Integer(*n as i64))
             } else {
-                Err(Error("expected integer".to_string()))
+                Err(Error(format!("expected an integer. got {}.", expr)))
             }
         }
         OperationArgType::String => Ok(OperationArg::String(expr.to_string())),
@@ -69,8 +67,13 @@ fn parse_arg(typ: &OperationArgType, expr: &Expression) -> Result<OperationArg, 
 
 fn parse_args(oi: &OperationInfo, exprs: &[Expression]) -> Result<OperationArguments, Error> {
     if oi.arguments.len() != exprs.len() {
-        return Err(Error("incorrect number of arguments".to_string()));
+        return Err(Error(format!(
+            "expected exactly {} arguments. got {}.",
+            oi.arguments.len(),
+            exprs.len()
+        )));
     }
+
     let mut ret: OperationArguments = OperationArguments::new();
 
     for ((name, typ), expr) in oi.arguments.iter().zip(exprs) {
@@ -96,7 +99,7 @@ pub fn lisp_subtract() -> Expression {
         let floats = parse_list_of_floats(args)?;
         let first = *floats
             .first()
-            .ok_or_else(|| Error("expected at least one number".to_string()))?;
+            .ok_or_else(|| Error("expected at least one number.".to_string()))?;
         let sum_of_rest = floats[1..].iter().fold(0.0, |sum, a| sum + a);
 
         Ok(Expression::Number(first - sum_of_rest))
@@ -105,18 +108,15 @@ pub fn lisp_subtract() -> Expression {
 
 pub fn lisp_apply() -> Expression {
     Expression::Func(Rc::new(|args: &[Expression]| -> LispResult {
-        if args.len() != 2 {
-            return Err(Error(format!("expected 2 arguments, got {}", args.len())));
-        }
+        ensure_exact_args(args, 2)?;
+
         match &args[0] {
             Expression::Func(f) => match &args[1] {
                 Expression::List(l) => f(l),
-                _ => Err(Error(
-                    "second argument to `apply` must be a list".to_string(),
-                )),
+                _ => Err(Error("2nd argument to 'apply' must be a list.".to_string())),
             },
             _ => Err(Error(
-                "first argument to `apply` must be a function".to_string(),
+                "1st argument to 'apply' must be a function.".to_string(),
             )),
         }
     }))
@@ -124,9 +124,8 @@ pub fn lisp_apply() -> Expression {
 
 pub fn lisp_head() -> Expression {
     Expression::Func(Rc::new(|args: &[Expression]| -> LispResult {
-        if args.len() != 1 {
-            return Err(Error("incorrect number of arguments".to_string()));
-        }
+        ensure_exact_args(args, 1)?;
+
         match &args[0] {
             Expression::List(v) => {
                 if v.len() == 0 {
@@ -134,31 +133,29 @@ pub fn lisp_head() -> Expression {
                 }
                 Ok(v.get(0).map(|x| x.clone()).unwrap())
             }
-            _ => Err(Error("expected list".to_string())),
+            _ => Err(Error(format!("expected a list. got '{}'.", &args[0]))),
         }
     }))
 }
 
 pub fn lisp_last() -> Expression {
     Expression::Func(Rc::new(|args: &[Expression]| -> LispResult {
-        if args.len() != 1 {
-            return Err(Error("incorrect number of arguments".to_string()));
-        }
+        ensure_exact_args(args, 1)?;
+
         match &args[0] {
             Expression::List(v) => v
                 .get(v.len() - 1)
                 .ok_or_else(|| Error("empty list".to_string()))
                 .map(|x| x.clone()),
-            _ => Err(Error("expected list".to_string())),
+            _ => Err(Error(format!("expected a list. got '{}'.", &args[0]))),
         }
     }))
 }
 
 pub fn lisp_rest() -> Expression {
     Expression::Func(Rc::new(|args: &[Expression]| -> LispResult {
-        if args.len() != 1 {
-            return Err(Error("incorrect number of arguments".to_string()));
-        }
+        ensure_exact_args(args, 1)?;
+
         match &args[0] {
             Expression::List(v) => {
                 let mut iter = v.iter();
@@ -167,16 +164,15 @@ pub fn lisp_rest() -> Expression {
                     iter.map(|x| x.clone()).collect::<Vec<Expression>>(),
                 ))
             }
-            _ => Err(Error("expected list".to_string())),
+            _ => Err(Error(format!("expected a list. got '{}'.", &args[0]))),
         }
     }))
 }
 
 pub fn lisp_init() -> Expression {
     Expression::Func(Rc::new(|args: &[Expression]| -> LispResult {
-        if args.len() != 1 {
-            return Err(Error("incorrect number of arguments".to_string()));
-        }
+        ensure_exact_args(args, 1)?;
+
         match &args[0] {
             Expression::List(v) => Ok(Expression::List(
                 v.iter()
@@ -184,22 +180,21 @@ pub fn lisp_init() -> Expression {
                     .map(|x| x.clone())
                     .collect::<Vec<Expression>>(),
             )),
-            _ => Err(Error("expected list".to_string())),
+            _ => Err(Error(format!("expected a list. got '{}'.", &args[0]))),
         }
     }))
 }
 
 pub fn lisp_dish() -> Expression {
     Expression::Func(Rc::new(|args: &[Expression]| -> LispResult {
-        if args.len() != 1 {
-            return Err(Error("`dish` takes a single argument".to_string()));
-        }
+        ensure_exact_args(args, 1)?;
+
         match &args[0] {
             Expression::String(s) => Ok(Expression::Dish(Rc::new(RefCell::new(
                 Dish::from_string(s.clone()),
             )))),
             _ => Err(Error(
-                "unsupported expression type for Dish (must be string)".to_string(),
+                "unsupported expression type for Dish. (must be string)".to_string(),
             )),
         }
     }))
@@ -207,15 +202,13 @@ pub fn lisp_dish() -> Expression {
 
 pub fn lisp_recipe() -> Expression {
     Expression::Func(Rc::new(|args: &[Expression]| -> LispResult {
-        if args.len() == 0 {
-            return Err(Error("`recipe` takes 2 arguments".to_string()));
-        }
+        ensure_exact_args(args, 2)?;
 
         let mut funcs: Vec<Expression> = Vec::new();
         for expr in args {
             match expr {
                 Expression::Func(_) => funcs.push(expr.clone()),
-                _ => return Err(Error("expected funcction".to_string())),
+                _ => return Err(Error("expected function".to_string())),
             }
         }
 
@@ -225,9 +218,7 @@ pub fn lisp_recipe() -> Expression {
 
 pub fn lisp_bake() -> Expression {
     Expression::Func(Rc::new(|args: &[Expression]| -> LispResult {
-        if args.len() != 2 {
-            return Err(Error("`bake` takes 2 arguments".to_string()));
-        }
+        ensure_exact_args(args, 2)?;
 
         let recipe = match &args[0] {
             Expression::List(v) => Ok(v),
@@ -244,7 +235,7 @@ pub fn lisp_bake() -> Expression {
         for expr in recipe {
             match expr {
                 Expression::Func(f) => funcs.push(f.clone()),
-                _ => return Err(Error("recipe must be list of functions".to_string())),
+                _ => return Err(Error("recipe must be list of functions.".to_string())),
             }
         }
 
@@ -258,9 +249,7 @@ pub fn lisp_bake() -> Expression {
 
 pub fn lisp_empty() -> Expression {
     Expression::Func(Rc::new(|args: &[Expression]| -> LispResult {
-        if args.len() != 1 {
-            return Err(Error(format!("expected 1 argument, got {}", args.len())));
-        }
+        ensure_exact_args(args, 1)?;
 
         let nil = Expression::Symbol("nil".to_string());
 
@@ -278,27 +267,20 @@ pub fn lisp_empty() -> Expression {
 
 pub fn lisp_cons() -> Expression {
     Expression::Func(Rc::new(|args: &[Expression]| -> LispResult {
-        if args.len() != 2 {
-            return Err(Error(format!("expected 2 arguments, got {}", args.len())));
-        }
+        ensure_exact_args(args, 2)?;
 
         if let Expression::List(mut l) = args[1].clone() {
             l.insert(0, args[0].clone());
             Ok(Expression::List(l))
         } else {
-            Err(Error("expected 2nd argument to be a list".to_string()))
+            Err(Error("expected 2nd argument to be a list.".to_string()))
         }
     }))
 }
 
 pub fn lisp_eq() -> Expression {
     Expression::Func(Rc::new(|args: &[Expression]| -> LispResult {
-        if args.len() < 1 {
-            return Err(Error(format!(
-                "expected at least 1 argument, got {}",
-                args.len()
-            )));
-        }
+        ensure_at_least_args(args, 1)?;
 
         let mut iter = args.iter();
         let fst = iter.next().unwrap();
@@ -313,6 +295,30 @@ fn parse_list_of_floats(args: &[Expression]) -> Result<Vec<f64>, Error> {
 fn parse_single_float(expr: &Expression) -> Result<f64, Error> {
     match expr {
         Expression::Number(num) => Ok(*num),
-        _ => Err(Error("expected a number".to_string())),
+        _ => Err(Error(format!("expected a number. got '{}'.", expr))),
     }
+}
+
+fn ensure_exact_args(args: &[Expression], n: usize) -> LispResult {
+    if args.len() != n {
+        return Err(Error(format!(
+            "expected exactly {} args. got {}.",
+            n,
+            args.len()
+        )));
+    }
+
+    Ok(Expression::Bool(true))
+}
+
+fn ensure_at_least_args(args: &[Expression], n: usize) -> LispResult {
+    if args.len() < n {
+        return Err(Error(format!(
+            "expected at least {} args. got {}.",
+            n,
+            args.len()
+        )));
+    }
+
+    Ok(Expression::Bool(true))
 }

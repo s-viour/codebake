@@ -12,9 +12,9 @@ mod functions;
 mod functions_nonnative;
 mod parser;
 
+pub use crate::lisp::parser::Reader;
 use crate::ops::OPERATIONS;
 use crate::Dish;
-pub use crate::lisp::parser::Reader;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt;

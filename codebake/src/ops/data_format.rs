@@ -346,7 +346,12 @@ pub static OPINFO_URLENCODE: OperationInfo = OperationInfo {
 fn url_encode(_: &OperationArguments, dish: &mut DishData) -> DishResult {
     let s = match std::str::from_utf8(dish.as_bytes()) {
         Ok(s) => s,
-        Err(e) => return Err(DishError(format!("could not decode binary dish to utf8 for encoding: {}", e))),
+        Err(e) => {
+            return Err(DishError(format!(
+                "could not decode binary dish to utf8 for encoding: {}",
+                e
+            )))
+        }
     };
     *dish = DishData::Str(urlencoding::encode(s).to_owned().to_string());
 
@@ -365,14 +370,21 @@ pub static OPINFO_URLDECODE: OperationInfo = OperationInfo {
 fn url_decode(_: &OperationArguments, dish: &mut DishData) -> DishResult {
     let s = match std::str::from_utf8(dish.as_bytes()) {
         Ok(s) => s,
-        Err(e) => return Err(DishError(format!("could not decode binary dish to utf8 for decoding: {}", e))),
+        Err(e) => {
+            return Err(DishError(format!(
+                "could not decode binary dish to utf8 for decoding: {}",
+                e
+            )))
+        }
     };
 
     *dish = match urlencoding::decode(s) {
         Ok(s) => DishData::Str(s.to_owned().to_string()),
-        Err(e) => { return Err(DishError(format!("could not perform URL decode: {}", e))); },
+        Err(e) => {
+            return Err(DishError(format!("could not perform URL decode: {}", e)));
+        }
     };
-    
+
     Ok(())
 }
 
@@ -463,7 +475,9 @@ mod tests {
     #[test]
     fn test_url_encode() {
         let mut data = DishData::Str("abcdefghijklmnopqrstuvwxyz!@#$%^&*()[]".to_string());
-        let _expected = DishData::Str("abcdefghijklmnopqrstuvwxyz%21%40%23%24%25%5E%26%2A%28%29%5B%5D".to_string());
+        let _expected = DishData::Str(
+            "abcdefghijklmnopqrstuvwxyz%21%40%23%24%25%5E%26%2A%28%29%5B%5D".to_string(),
+        );
 
         assert!(matches!(url_encode(&EMPTY_ARGS, &mut data), Ok(())));
         assert_eq!(data, _expected);
