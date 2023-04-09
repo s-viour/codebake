@@ -135,6 +135,8 @@ pub fn run_repl(env: Option<&mut Environment>) {
             &mut maybeenv
         }
     };
+    env.data.insert(":ans".to_string(), Expression::Symbol("nil".to_string()));
+
     let stdin = io::stdin();
 
     loop {
@@ -155,7 +157,10 @@ pub fn run_repl(env: Option<&mut Environment>) {
         }
 
         match parse_eval(&reader, env, &expr) {
-            Ok(res) => println!("{}", res),
+            Ok(res) => {
+                env.data.insert(":ans".to_string(), res.clone());
+                println!("{}", res)
+            },
             Err(e) => println!("error: {}", e),
         }
     }
