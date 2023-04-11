@@ -8,6 +8,7 @@
 
 use crate::lisp::{Environment, Error, Expression, LispResult};
 use crate::{Dish, OperationArg, OperationArgType, OperationArguments, OperationInfo, EMPTY_ARGS};
+use std::fs;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -285,6 +286,40 @@ pub fn lisp_eq() -> Expression {
         let mut iter = args.iter();
         let fst = iter.next().unwrap();
         Ok(Expression::Bool(iter.all(|x| x == fst)))
+    }))
+}
+
+pub fn lisp_slurp() -> Expression {
+    Expression::Func(Rc::new(|args: &[Expression]| -> LispResult {
+        ensure_at_least_args(args, 2)?;
+
+        let mode = match &args[0] {
+            Expression::String(s) => s,
+            _ => return Err(Error(format!("expected a string. got {}", &args[0])))
+        };
+
+        match mode.as_str() {
+            "str" => {},
+            "bin" => {},
+            _ => return Err(Error(format!("mode must be either 'str' or 'bin'. got {}", mode))),
+        };
+
+        let filename = match &args[1] {
+            Expression::String(s) => s,
+            _ => return Err(Error(format!("expected a string. got {}", &args[1]))),
+        };
+        
+        if mode.as_str() == "str" {
+            let file = fs::read_to_string(filename)
+                .map_err(|e| Error(format!("could not read file '{}'. ({})", filename, e)))?;
+            let dish = Rc::new(RefCell::new(Dish::from_string(file)));
+            Ok(Expression::Dish(dish))
+        } else {
+            let file = fs::read(filename)
+                .map_err(|e| Error(format!("could not read file '{}'. ({})", filename, e)))?;
+            let dish = Rc::new(RefCell::new(Dish::from_bytes(file)));
+            Ok(Expression::Dish(dish))
+        }
     }))
 }
 
