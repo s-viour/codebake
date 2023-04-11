@@ -188,7 +188,9 @@ impl<'a> Interpreter<'a> {
 impl<'a> Default for Interpreter<'a> {
     fn default() -> Self {
         let reader = Reader::new();
-        let env = default_env(&reader);
+        let mut env = default_env(&reader);
+        env.data
+            .insert(":ans".to_string(), Expression::Symbol("nil".to_string()));
         Interpreter { reader, env }
     }
 }

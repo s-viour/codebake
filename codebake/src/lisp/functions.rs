@@ -299,10 +299,33 @@ pub fn lisp_slurp() -> Expression {
             _ => return Err(Error(format!("expected a string. got {}", &args[0]))),
         };
 
+        let text_mode = match args.get(1) {
+            Some(a) => match a {
+                Expression::Symbol(s) => if s == ":mode" {
+                    ensure_at_least_args(args, 3)?;
+                    if let Expression::String(st) = &args[2] {
+                        match st.as_ref() {
+                            "text" => true,
+                            "bin" => false,
+                            _ => return Err(Error(format!("expected either 'text' or 'bin'. got {}", &args[2]))),
+                        }
+                    } else {
+                        return Err(Error(format!("expected symbol ':mode'. got {}", a)));
+                    }
+                } else { return Err(Error(format!("expected symbol ':mode'. got {}", a))) },
+                _ => return Err(Error(format!("expected symbol ':mode'. got {}", a))),
+            }
+            None => false,
+        };
+
         let bytes = fs::read(filename)
             .map_err(|e| Error(format!("could not read file '{}'. ({})", filename, e)))?;
 
-        let dish = Dish::from_bytes(bytes);
+        let dish = if text_mode {
+            Dish::from_string(String::from_utf8_lossy(&bytes).into_owned())
+        } else {
+            Dish::from_bytes(bytes)
+        };
 
         Ok(Expression::Dish(Rc::new(RefCell::new(dish))))
     }))
