@@ -246,7 +246,9 @@ pub fn default_env<'a>(reader: &Reader) -> Environment<'a> {
     data.insert("recipe".to_string(), functions::lisp_recipe());
     data.insert("bake".to_string(), functions::lisp_bake());
 
+    data.insert("print".to_string(), functions::lisp_print());
     data.insert("slurp".to_string(), functions::lisp_slurp());
+    data.insert("spit".to_string(), functions::lisp_spit());
 
     let mut env = Environment { data, outer: None };
 

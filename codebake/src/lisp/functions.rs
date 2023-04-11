@@ -291,35 +291,66 @@ pub fn lisp_eq() -> Expression {
 
 pub fn lisp_slurp() -> Expression {
     Expression::Func(Rc::new(|args: &[Expression]| -> LispResult {
-        ensure_at_least_args(args, 2)?;
+        ensure_at_least_args(args, 1)?;
 
-        let mode = match &args[0] {
+
+        let filename = match &args[0] {
             Expression::String(s) => s,
-            _ => return Err(Error(format!("expected a string. got {}", &args[0])))
+            _ => return Err(Error(format!("expected a string. got {}", &args[0]))),
         };
 
-        match mode.as_str() {
-            "str" => {},
-            "bin" => {},
-            _ => return Err(Error(format!("mode must be either 'str' or 'bin'. got {}", mode))),
+        let bytes = fs::read(filename)
+            .map_err(|e| Error(format!("could not read file '{}'. ({})", filename, e)))?;
+
+        let dish = Dish::from_bytes(bytes);
+
+        Ok(Expression::Dish(Rc::new(RefCell::new(dish))))
+    }))
+}
+
+pub fn lisp_spit() -> Expression {
+    Expression::Func(Rc::new(|args: &[Expression]| -> LispResult {
+        ensure_at_least_args(args, 2)?;
+
+        let dish = match &args[0] {
+            Expression::Dish(d) => d,
+            _ => return Err(Error(format!("expected a dish. got {}.", &args[0]))),
         };
 
         let filename = match &args[1] {
             Expression::String(s) => s,
             _ => return Err(Error(format!("expected a string. got {}", &args[1]))),
         };
-        
-        if mode.as_str() == "str" {
-            let file = fs::read_to_string(filename)
-                .map_err(|e| Error(format!("could not read file '{}'. ({})", filename, e)))?;
-            let dish = Rc::new(RefCell::new(Dish::from_string(file)));
-            Ok(Expression::Dish(dish))
-        } else {
-            let file = fs::read(filename)
-                .map_err(|e| Error(format!("could not read file '{}'. ({})", filename, e)))?;
-            let dish = Rc::new(RefCell::new(Dish::from_bytes(file)));
-            Ok(Expression::Dish(dish))
+
+        let inner = &*dish.borrow();
+        let bytes = match inner {
+            Dish::Success(data) => data.as_bytes(),
+            Dish::Failure(err) => err.0.as_bytes(),
+        };
+
+        fs::write(filename, bytes)
+            .map_err(|e| Error(format!("failed to write to file '{}'. ({})", filename, e)))?;
+
+        Ok(Expression::Dish(dish.clone()))
+    }))
+}
+
+pub fn lisp_print() -> Expression {
+    Expression::Func(Rc::new(|args: &[Expression]| -> LispResult {
+        ensure_at_least_args(args, 1)?;
+
+        match &args[0] {
+            Expression::Dish(d) => {
+                let inner = &*d.borrow();
+                match inner {
+                    Dish::Success(data) => println!("{}", String::from_utf8_lossy(data.as_bytes())),
+                    Dish::Failure(err) => println!("{}", String::from_utf8_lossy(err.0.as_bytes())),
+                };
+            }
+            _ => println!("{}", &args[0]),
         }
+
+        Ok(Expression::Symbol("nil".to_string()))
     }))
 }
 

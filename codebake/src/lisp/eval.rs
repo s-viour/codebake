@@ -11,6 +11,12 @@ use std::rc::Rc;
 pub fn eval(expr: &Expression, env: &mut Environment) -> Result<Expression, Error> {
     match expr {
         Expression::Symbol(k) => {
+            if k.chars().next().unwrap() == ':' {
+                // keyword, mutate env to store it if necessary
+                if !env.data.contains_key(k) {
+                    env.data.insert(k.clone(), Expression::Symbol(k.clone()));
+                }
+            }
             env_get(k, env).ok_or_else(|| Error(format!("unexpected symbol '{}'.", k)))
         }
         Expression::Number(_) => Ok(expr.clone()),

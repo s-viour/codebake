@@ -222,8 +222,18 @@ impl fmt::Display for Dish {
 impl fmt::Display for DishData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            DishData::Str(s) => write!(f, "\"{}\"", s),
-            DishData::Bin(b) => write!(f, "\"{}\"", String::from_utf8_lossy(b)),
+            DishData::Str(s) => {
+                let mut truncated = s.clone();
+                truncated.truncate(80);
+                truncated.push_str("...");
+                write!(f, "\"{}\"", truncated)
+            }
+            DishData::Bin(b) => {
+                let mut truncated = String::from_utf8_lossy(b).into_owned();
+                truncated.truncate(32);
+                truncated.push_str("...");
+                write!(f, "[{}]", truncated)
+            }
         }
     }
 }
