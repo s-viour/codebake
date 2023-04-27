@@ -224,14 +224,20 @@ impl fmt::Display for DishData {
         match self {
             DishData::Str(s) => {
                 let mut truncated = s.clone();
-                truncated.truncate(80);
-                truncated.push_str("...");
+                let new_char = truncated.char_indices().nth(80);
+                if new_char.is_some() {
+                    truncated.truncate(new_char.unwrap().0);
+                    truncated.push_str("...");
+                }
                 write!(f, "\"{}\"", truncated)
             }
             DishData::Bin(b) => {
                 let mut truncated = String::from_utf8_lossy(b).into_owned();
-                truncated.truncate(32);
-                truncated.push_str("...");
+                let new_char = truncated.char_indices().nth(32);
+                if new_char.is_some() {
+                    truncated.truncate(new_char.unwrap().0);
+                    truncated.push_str("...");
+                }
                 write!(f, "[{}]", truncated)
             }
         }
