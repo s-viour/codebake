@@ -168,8 +168,15 @@ impl<'a> Interpreter<'a> {
             loop {
                 match stdin.read_line(&mut expr) {
                     Ok(0) => return,
-                    Ok(_) => {}
-                    Err(e) => panic!("{}", e),
+                    Ok(_) => {},
+                    Err(e) => match e.kind() {
+                        // add an exception for the InvalidData error kind
+                        // this occurrs on Windows when Ctrl+Z is pressed in the terminal
+                        // so we want to exit nicely here
+                        io::ErrorKind::InvalidData => return,
+                        // otherwise, panic like usual
+                        _ => panic!("{}", e),
+                    }
                 }
 
                 if check_parens(&expr) {
