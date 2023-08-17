@@ -27,10 +27,12 @@
 
 mod data_format;
 mod textual;
+mod utility;
 
 use crate::OperationInfo;
 use data_format::*;
 use textual::*;
+use utility::*;
 
 /// This is the list of ALL OperationInfo structures
 pub static OPERATIONS: &[&OperationInfo] = &[
@@ -52,4 +54,6 @@ pub static OPERATIONS: &[&OperationInfo] = &[
     &OPINFO_REGEXREPLACE,
     &OPINFO_URLENCODE,
     &OPINFO_URLDECODE,
+    &OPINFO_TAKE_BYTES,
+    &OPINFO_DROP_BYTES,
 ];
