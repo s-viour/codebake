@@ -15,12 +15,21 @@ pub mod ops;
 
 use std::collections::HashMap;
 use std::convert::Into;
+use std::fs::File;
+use std::io::Read;
+use std::iter::Iterator;
+use std::str::Chars;
+use std::slice::IterMut;
 use std::fmt;
 use std::result;
 
 /// Constant for an empty OperationArguments (i.e the inner field is None)
 ///
 pub static EMPTY_ARGS: OperationArguments = OperationArguments { inner: None };
+
+/// Maximum file size to load into memory. Any amount larger and the file will be buffered
+///
+pub static MAX_FILE_MEM: u64 = 256 * 1_000_000;
 
 /// An error that occurred while performing an operation
 /// on some DishData. This is the `E` type in `codebake::Result`.
@@ -53,6 +62,23 @@ pub enum DishData {
 pub enum Dish {
     Success(DishData),
     Failure(DishError),
+}
+
+pub struct NewDishData {
+    str_data: Option<String>,
+    bin_data: Option<Vec<u8>>,
+    file: Option<File>,
+}
+
+enum NewDishDataBinIteratorKind {
+    Bin,
+    File,
+}
+
+pub struct NewDishDataBinIterator<'a> {
+    data: Option<&'a mut NewDishData>,
+    bin_iter: Option<IterMut<'a, u8>>,
+    kind: NewDishDataBinIteratorKind,
 }
 
 /// Represents an argument to an Operation declaratively
@@ -154,6 +180,85 @@ impl DishData {
         match self {
             DishData::Str(s) => s.as_bytes(),
             DishData::Bin(b) => b,
+        }
+    }
+}
+
+impl NewDishData {
+    pub fn from_str(s: String) -> NewDishData {
+        let str_data = Some(s);
+        let bin_data = None;
+        let file = None;
+        NewDishData {
+            str_data,
+            bin_data,
+            file,
+        }
+    }
+
+    pub fn from_bin(b: Vec<u8>) -> NewDishData {
+        let str_data = None;
+        let bin_data = Some(b);
+        let file = None;
+        NewDishData {
+            str_data,
+            bin_data,
+            file,
+        }
+    }
+
+    pub fn from_file(mut f: File) -> NewDishData {
+        let file_len = f.metadata()
+            .expect("failed to retrieve file metadata")
+            .len();
+
+        let str_data = None;
+        let mut data: Vec<u8> = Vec::new();
+        if file_len < MAX_FILE_MEM {
+            f.read_to_end(&mut data)
+                .expect("failed to read file");
+
+            NewDishData {
+                str_data,
+                bin_data: Some(data),
+                file: None,
+            }
+        } else {
+            NewDishData {
+                str_data,
+                bin_data: None,
+                file: Some(f),
+            }
+        }
+    }
+
+    pub fn iter_bin(&mut self) -> NewDishDataBinIterator {
+        if self.bin_data.is_some() {
+            NewDishDataBinIterator {
+                data: None,
+                bin_iter: Some(self.bin_data.as_mut().unwrap().iter_mut()),
+                kind: NewDishDataBinIteratorKind::Bin,
+            }
+        } else {
+            NewDishDataBinIterator {
+                data: Some(self),
+                bin_iter: None,
+                kind: NewDishDataBinIteratorKind::File,
+            }
+        }
+    }
+}
+
+impl<'a> Iterator for NewDishDataBinIterator<'a> {
+    type Item = &'a mut u8;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.kind {
+            NewDishDataBinIteratorKind::Bin => self.bin_iter.as_mut().unwrap().next(),
+            // here is where the magic needs to happen
+            // basically, we need to perform file buffering here and be able to transform the data within the buffer
+            // and commit those changes to the file when overwriting the buffer
+            NewDishDataBinIteratorKind::File => todo!(),
         }
     }
 }
